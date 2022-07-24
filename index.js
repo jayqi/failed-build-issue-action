@@ -1,18 +1,22 @@
 const core = require('@actions/core');
-const wait = require('./wait');
-
+const issues = require('./issues');
 
 // most @actions toolkit packages have async methods
 async function run() {
   try {
-    const ms = core.getInput('milliseconds');
-    core.info(`Waiting ${ms} milliseconds ...`);
+    // This should be a token with access to your repository scoped in as a secret.
+    // The YML workflow will need to set github-token with the GitHub Secret Token
+    // github-token: ${{ secrets.GITHUB_TOKEN }}
+    // https://help.github.com/en/actions/automating-your-workflow-with-github-actions/authenticating-with-the-github_token#about-the-github_token-secret
+    const githubToken = core.getInput('github-token');
+    const labelName = core.getInput('label-name');
+    const titleTemplate = core.getInput('title-template');
+    const descriptionTemplate = core.getInput('description-template');
 
-    core.debug((new Date()).toTimeString()); // debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
-    await wait(parseInt(ms));
-    core.info((new Date()).toTimeString());
+    const { issueNumber, created } = await issues.newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, descriptionTemplate)
+    console.log(created);
 
-    core.setOutput('time', new Date().toTimeString());
+    core.setOutput('issue-number', issueNumber);
   } catch (error) {
     core.setFailed(error.message);
   }
