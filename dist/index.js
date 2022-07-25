@@ -1,7 +1,7 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 8826:
+/***/ 7270:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const github = __nccwpck_require__(5438);
@@ -9835,7 +9835,7 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const core = __nccwpck_require__(2186);
-const issues = __nccwpck_require__(8826);
+const newIssueOrCommentForLabel = __nccwpck_require__(7270);
 
 // most @actions toolkit packages have async methods
 async function run() {
@@ -9849,7 +9849,7 @@ async function run() {
     const titleTemplate = core.getInput('title-template');
     const descriptionTemplate = core.getInput('description-template');
 
-    const { issueNumber, created } = await issues.newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, descriptionTemplate)
+    const { issueNumber, created } = await newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, descriptionTemplate)
     console.log(created);
 
     core.setOutput('issue-number', issueNumber);

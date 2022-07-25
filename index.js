@@ -1,5 +1,5 @@
 const core = require('@actions/core');
-const issues = require('./issues');
+const newIssueOrCommentForLabel = require('./new-issue-or-comment-for-label');
 
 // most @actions toolkit packages have async methods
 async function run() {
@@ -13,7 +13,7 @@ async function run() {
     const titleTemplate = core.getInput('title-template');
     const descriptionTemplate = core.getInput('description-template');
 
-    const { issueNumber, created } = await issues.newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, descriptionTemplate)
+    const { issueNumber, created } = await newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, descriptionTemplate)
     console.log(created);
 
     core.setOutput('issue-number', issueNumber);
