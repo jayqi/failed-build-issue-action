@@ -10,7 +10,7 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
   const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    labels: labelName,
+    labels: [labelName],
     state: 'open',
     sort: 'created',
     direction: 'desc',
@@ -27,7 +27,7 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
       repo: context.repo.repo,
       title: Mustache.render(titleTemplate, context),
       body: Mustache.render(bodyTemplate, context),
-      labels: labelName,
+      labels: [labelName],
     }));
     issueNumber = created.number;
   } else {
