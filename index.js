@@ -11,9 +11,9 @@ async function run() {
     const githubToken = core.getInput('github-token');
     const labelName = core.getInput('label-name');
     const titleTemplate = core.getInput('title-template');
-    const descriptionTemplate = core.getInput('description-template');
+    const bodyTemplate = core.getInput('body-template');
 
-    const { issueNumber, created } = await newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, descriptionTemplate)
+    const { issueNumber, created } = await newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, bodyTemplate)
     console.log(created);
 
     core.setOutput('issue-number', issueNumber);
