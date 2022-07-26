@@ -28,23 +28,23 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
   let created;
   if (issues_with_label.length === 0) {
     // No open issue, create new one
-    ({ data: created } = await octokit.rest.issues.create({
+    created = await octokit.rest.issues.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
       title: Mustache.render(titleTemplate, context),
       body: Mustache.render(bodyTemplate, context),
       labels: [labelName],
-    }));
+    });
     issueNumber = created.number;
   } else {
     // Append as comment to existing issue
     issueNumber = issues_with_label[0].number;
-    ({ data: created } = await octokit.rest.issues.createComment({
+    created = await octokit.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: issueNumber,
       body: Mustache.render(bodyTemplate, context),
-    }));
+    });
   }
 
   return issueNumber, created
@@ -9850,7 +9850,7 @@ async function run() {
     const bodyTemplate = core.getInput('body-template');
 
     const { issueNumber, created } = await newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, bodyTemplate)
-    console.log(created);
+    core.info(created);
 
     core.setOutput('issue-number', issueNumber);
   } catch (error) {
