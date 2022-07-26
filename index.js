@@ -14,7 +14,7 @@ async function run() {
     const bodyTemplate = core.getInput('body-template');
 
     const { issueNumber, created } = await newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, bodyTemplate)
-    core.info(created);
+    core.info(JSON.stringify(created));
 
     core.setOutput('issue-number', issueNumber);
   } catch (error) {
