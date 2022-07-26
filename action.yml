@@ -11,12 +11,15 @@ inputs:
   title-template:
     description: "mustache template to use as title when creating a new issue"
     required: true
-    default: "Failed build on main branch ({{workflow}} #{{runNumber}})"
+    default: "Failed build ({{workflow}} #{{runNumber}})"
   body-template:
     description: "mustache template to use for issue or comment body"
     required: true
     default: |
-      Workflow failed: [{{workflow}} #{{runNumber}}](https://github.com/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runNumber}})
+      GitHub Actions workflow [{{workflow}} #{{runNumber}}](https://github.com/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runNumber}}) failed.
+
+      Branch: {{ref}}
+      Commit: [{{sha}}](https://github.com/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
 outputs:
   issue-number: # output will be available to future steps
     description: "Issue number of new issue or comment"
