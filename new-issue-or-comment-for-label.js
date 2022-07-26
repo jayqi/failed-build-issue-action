@@ -47,6 +47,9 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
     });
   }
 
+  core.info(issueNumber);
+  core.info(JSON.stringify(created));
+
   return issueNumber, created
 };
 
