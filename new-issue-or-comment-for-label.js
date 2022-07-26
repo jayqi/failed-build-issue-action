@@ -6,12 +6,15 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
   // octokit client
   // https://octokit.github.io/rest.js/
   const octokit = github.getOctokit(githubToken);
-  const context = github.context;
+  const context = {
+    ...github.context,
+    refname: github.context.ref.split("/").pop() // just the branch or tag name
+  };
 
-  core.info("labelName: " + labelName)
-  core.info("titleTemplate: " + titleTemplate)
-  core.info("bodyTemplate: " + bodyTemplate)
-  core.info("context: " + JSON.stringify(context))
+  core.debug("labelName: " + labelName)
+  core.debug("titleTemplate: " + titleTemplate)
+  core.debug("bodyTemplate: " + bodyTemplate)
+  core.debug("context: " + JSON.stringify(context))
 
   const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
     owner: context.repo.owner,
@@ -25,21 +28,21 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
   });
 
   let issueNumber;
-  let created;
+  let response;
   if (issues_with_label.length === 0) {
     // No open issue, create new one
-    created = await octokit.rest.issues.create({
+    response = await octokit.rest.issues.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
       title: Mustache.render(titleTemplate, context),
       body: Mustache.render(bodyTemplate, context),
       labels: [labelName],
     });
-    issueNumber = created.number;
+    issueNumber = response.data.number;
   } else {
     // Append as comment to existing issue
     issueNumber = issues_with_label[0].number;
-    created = await octokit.rest.issues.createComment({
+    response = await octokit.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: issueNumber,
@@ -47,10 +50,11 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
     });
   }
 
-  core.info(issueNumber);
-  core.info(JSON.stringify(created));
+  core.debug(JSON.stringify(response));
 
-  return issueNumber, created
+  const created = response.data
+
+  return { issueNumber, created }
 };
 
 module.exports = newIssueOrCommentForLabel;

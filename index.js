@@ -14,9 +14,11 @@ async function run() {
     const bodyTemplate = core.getInput('body-template');
 
     const { issueNumber, created } = await newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, bodyTemplate)
-    core.info(JSON.stringify(created));
+    const htmlUrl = created.html_url
+    core.info("Created url:" + htmlUrl);
 
     core.setOutput('issue-number', issueNumber);
+    core.setOutput('html-url', htmlUrl);
   } catch (error) {
     core.setFailed(error.message);
   }

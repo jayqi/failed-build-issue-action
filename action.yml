@@ -18,6 +18,7 @@ inputs:
     default: |
       GitHub Actions workflow [{{workflow}} #{{runNumber}}](https://github.com/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runNumber}}) failed.
 
+      Event: {{eventName}}
       Branch: {{ref}}
       Commit: [{{sha}}](https://github.com/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
 outputs:
