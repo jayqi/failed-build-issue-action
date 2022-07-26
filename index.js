@@ -29,6 +29,7 @@ async function run() {
     core.setOutput('issue-number', issueNumber);
     core.setOutput('html-url', htmlUrl);
   } catch (error) {
+    core.debug("Error:\n" + JSON.stringify(error))
     core.setFailed(error.message);
   }
 }
