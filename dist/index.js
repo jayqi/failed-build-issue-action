@@ -14,10 +14,10 @@ let newIssueOrCommentForLabel = async function (
   // octokit client
   // https://octokit.github.io/rest.js/
   const octokit = github.getOctokit(githubToken);
-  const context = {
-    ...github.context,
-    refname: github.context.ref.split("/").pop() // just the branch or tag name
-  };
+  const context = Object.assign(
+    github.context,
+    { refname: github.context.ref.split("/").pop() } // just the branch or tag name
+  )
 
   core.debug("labelName: " + labelName)
   core.debug("titleTemplate: " + titleTemplate)
@@ -36,7 +36,6 @@ let newIssueOrCommentForLabel = async function (
     per_page: 1,
     page: 1,
   });
-
 
   const get_label_response = await octokit.rest.issues.getLabel({
     owner: context.repo.owner,
