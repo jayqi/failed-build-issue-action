@@ -5,15 +5,15 @@ inputs:
     description: "GitHub token with repository access, i.e., secrets.GITHUB_TOKEN"
     required: true
   label-name:
-    description: "name of label that this action interacts with"
+    description: "Name of label that this action interacts with"
     required: true
     default: "build failed"
   title-template:
-    description: "mustache template to use as title when creating a new issue"
+    description: "Mustache template to use as title when creating a new issue"
     required: true
     default: "Failed build ({{workflow}} #{{runNumber}})"
   body-template:
-    description: "mustache template to use for issue or comment body"
+    description: "Mustache template to use for issue or comment body"
     required: true
     default: |
       GitHub Actions workflow [{{workflow}} #{{runNumber}}](https://github.com/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runNumber}}) failed.
@@ -21,6 +21,14 @@ inputs:
       Event: {{eventName}}
       Branch: {{ref}}
       Commit: [{{sha}}](https://github.com/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
+  create-label:
+    description: "Whether to create a new label for 'label-name' if it doesn't already exist."
+    required: true
+    default: true
+  always-create-new-issue:
+    description: "If true, will always create a new issue, even if one matching 'label-name' is already open."
+    required: true
+    default: false
 outputs:
   issue-number: # output will be available to future steps
     description: "Issue number of new issue or comment"

@@ -8,7 +8,9 @@ const core = __nccwpck_require__(2186);
 const github = __nccwpck_require__(5438);
 var Mustache = __nccwpck_require__(8272);
 
-let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTemplate, bodyTemplate) {
+let newIssueOrCommentForLabel = async function (
+  githubToken, labelName, titleTemplate, bodyTemplate, createLabel, alwaysCreateNewIssue
+) {
   // octokit client
   // https://octokit.github.io/rest.js/
   const octokit = github.getOctokit(githubToken);
@@ -20,6 +22,8 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
   core.debug("labelName: " + labelName)
   core.debug("titleTemplate: " + titleTemplate)
   core.debug("bodyTemplate: " + bodyTemplate)
+  core.debug("createLabel: " + String(createLabel))
+  core.debug("alwaysCreateNewIssue: " + String(alwaysCreateNewIssue))
   core.debug("context: " + JSON.stringify(context))
 
   const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
@@ -33,22 +37,42 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
     page: 1,
   });
 
+
+  const get_label_response = await octokit.rest.issues.getLabel({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    name: labelName,
+  });
+  core.debug("get_label_response:\n" + JSON.stringify(get_label_response))
+  if (get_label_response.status === 404) {
+    if (createLabel) {
+      const create_label_response = await octokit.rest.issues.createLabel({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        name: labelName,
+      });
+      core.debug("create_label_response:\n" + JSON.stringify(create_label_response))
+    } else {
+      throw "Label " + labelName + " does not exist. Either create it or set 'create-label' to 'true'."
+    }
+  }
+
   let issueNumber;
-  let response;
-  if (issues_with_label.length === 0) {
+  let create_issue_or_comment_response;
+  if (alwaysCreateNewIssue || issues_with_label.length === 0) {
     // No open issue, create new one
-    response = await octokit.rest.issues.create({
+    create_issue_or_comment_response = await octokit.rest.issues.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
       title: Mustache.render(titleTemplate, context),
       body: Mustache.render(bodyTemplate, context),
       labels: [labelName],
     });
-    issueNumber = response.data.number;
+    issueNumber = create_issue_or_comment_response.data.number;
   } else {
     // Append as comment to existing issue
     issueNumber = issues_with_label[0].number;
-    response = await octokit.rest.issues.createComment({
+    create_issue_or_comment_response = await octokit.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: issueNumber,
@@ -56,9 +80,9 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
     });
   }
 
-  core.debug(JSON.stringify(response));
+  core.debug("create_issue_or_comment_response:\n" + JSON.stringify(create_issue_or_comment_response));
 
-  const created = response.data
+  const created = create_issue_or_comment_response.data
 
   return { issueNumber, created }
 };
@@ -9861,8 +9885,17 @@ async function run() {
     const labelName = core.getInput('label-name');
     const titleTemplate = core.getInput('title-template');
     const bodyTemplate = core.getInput('body-template');
+    const createLabel = core.getBooleanInput('create-label');
+    const alwaysCreateNewIssue = core.getBooleanInput('always-create-new-issue');
 
-    const { issueNumber, created } = await newIssueOrCommentForLabel(githubToken, labelName, titleTemplate, bodyTemplate)
+    const { issueNumber, created } = await newIssueOrCommentForLabel(
+      githubToken,
+      labelName,
+      titleTemplate,
+      bodyTemplate,
+      createLabel,
+      alwaysCreateNewIssue,
+    )
     const htmlUrl = created.html_url
     core.info("Created url:" + htmlUrl);
 
