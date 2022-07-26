@@ -20,17 +20,7 @@ let newIssueOrCommentForLabel = async function (
   core.debug("alwaysCreateNewIssue: " + String(alwaysCreateNewIssue))
   core.debug("context: " + JSON.stringify(context))
 
-  const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    labels: [labelName],
-    state: 'open',
-    sort: 'created',
-    direction: 'desc',
-    per_page: 1,
-    page: 1,
-  });
-
+  core.info("Checking if label '" + labelName + "'exists...")
   const get_label_response = await octokit.rest.issues.getLabel({
     owner: context.repo.owner,
     repo: context.repo.repo,
@@ -39,6 +29,7 @@ let newIssueOrCommentForLabel = async function (
   core.debug("get_label_response:\n" + JSON.stringify(get_label_response))
   if (get_label_response.status === 404) {
     if (createLabel) {
+      core.info("Creating label '" + labelName + "'...")
       const create_label_response = await octokit.rest.issues.createLabel({
         owner: context.repo.owner,
         repo: context.repo.repo,
@@ -50,10 +41,23 @@ let newIssueOrCommentForLabel = async function (
     }
   }
 
+  core.info("Finding latest open issue with label '" + labelName + "'...")
+  const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    labels: [labelName],
+    state: 'open',
+    sort: 'created',
+    direction: 'desc',
+    per_page: 1,
+    page: 1,
+  });
+
   let issueNumber;
   let create_issue_or_comment_response;
   if (alwaysCreateNewIssue || issues_with_label.length === 0) {
-    // No open issue, create new one
+    core.info(alwaysCreateNewIssue ? "always-create-new-issue set to true" : "No open issue found.")
+    core.info("Creating new issue...")
     create_issue_or_comment_response = await octokit.rest.issues.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
@@ -63,8 +67,8 @@ let newIssueOrCommentForLabel = async function (
     });
     issueNumber = create_issue_or_comment_response.data.number;
   } else {
-    // Append as comment to existing issue
     issueNumber = issues_with_label[0].number;
+    core.info("Found issue #" + String(issueNumber) + ". Creating new comment...")
     create_issue_or_comment_response = await octokit.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
