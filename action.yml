@@ -15,8 +15,7 @@ inputs:
   body-template:
     description: "mustache template to use for issue or comment body"
     required: true
-    default: |
-      Workflow failed: [{{workflow}} #{{runNumber}}](https://github.com/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runNumber}})
+    default: "Workflow failed: [{{workflow}} #{{runNumber}}](https://github.com/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runNumber}})"
 outputs:
   issue-number: # output will be available to future steps
     description: "Issue number of new issue or comment"
