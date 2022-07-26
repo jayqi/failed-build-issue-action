@@ -24,7 +24,7 @@ async function run() {
       alwaysCreateNewIssue,
     )
     const htmlUrl = created.html_url
-    core.info("Created url:" + htmlUrl);
+    core.info("Created url: " + htmlUrl);
 
     core.setOutput('issue-number', issueNumber);
     core.setOutput('html-url', htmlUrl);
