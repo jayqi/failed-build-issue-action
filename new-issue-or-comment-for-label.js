@@ -1,3 +1,4 @@
+const core = require('@actions/core');
 const github = require('@actions/github');
 var Mustache = require('mustache');
 
@@ -6,6 +7,11 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
   // https://octokit.github.io/rest.js/
   const octokit = github.getOctokit(githubToken);
   const context = github.context;
+
+  core.debug("labelName: " + labelName)
+  core.debug("titleTemplate: " + titleTemplate)
+  core.debug("bodyTemplate: " + bodyTemplate)
+  core.debug("context: " + JSON.stringify(context))
 
   const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
     owner: context.repo.owner,

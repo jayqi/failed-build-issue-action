@@ -4,6 +4,7 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /***/ 7270:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
+const core = __nccwpck_require__(2186);
 const github = __nccwpck_require__(5438);
 var Mustache = __nccwpck_require__(8272);
 
@@ -12,6 +13,11 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
   // https://octokit.github.io/rest.js/
   const octokit = github.getOctokit(githubToken);
   const context = github.context;
+
+  core.debug("labelName: " + labelName)
+  core.debug("titleTemplate: " + titleTemplate)
+  core.debug("bodyTemplate: " + bodyTemplate)
+  core.debug("context: " + JSON.stringify(context))
 
   const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
     owner: context.repo.owner,
