@@ -20,7 +20,7 @@ let newIssueOrCommentForLabel = async function (
   core.debug("alwaysCreateNewIssue: " + String(alwaysCreateNewIssue))
   core.debug("context: " + JSON.stringify(context))
 
-  core.info("Checking if label '" + labelName + "'exists...")
+  core.info("Checking if label '" + labelName + "' exists...")
   try {
     const get_label_response = await octokit.rest.issues.getLabel({
       owner: context.repo.owner,

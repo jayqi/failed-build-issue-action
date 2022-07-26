@@ -26,15 +26,17 @@ let newIssueOrCommentForLabel = async function (
   core.debug("alwaysCreateNewIssue: " + String(alwaysCreateNewIssue))
   core.debug("context: " + JSON.stringify(context))
 
-  core.info("Checking if label '" + labelName + "'exists...")
-  const get_label_response = await octokit.rest.issues.getLabel({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    name: labelName,
-  });
-  core.debug("get_label_response:\n" + JSON.stringify(get_label_response))
-  if (get_label_response.status === 404) {
-    if (createLabel) {
+  core.info("Checking if label '" + labelName + "' exists...")
+  try {
+    const get_label_response = await octokit.rest.issues.getLabel({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      name: labelName,
+    });
+    core.debug("get_label_response:\n" + JSON.stringify(get_label_response))
+  }
+  catch (error) {
+    if (error.message === "Not Found" && createLabel) {
       core.info("Creating label '" + labelName + "'...")
       const create_label_response = await octokit.rest.issues.createLabel({
         owner: context.repo.owner,
@@ -43,7 +45,7 @@ let newIssueOrCommentForLabel = async function (
       });
       core.debug("create_label_response:\n" + JSON.stringify(create_label_response))
     } else {
-      throw "Label " + labelName + " does not exist. Either create it or set 'create-label' to 'true'."
+      throw error
     }
   }
 
@@ -9905,6 +9907,7 @@ async function run() {
     core.setOutput('issue-number', issueNumber);
     core.setOutput('html-url', htmlUrl);
   } catch (error) {
+    core.debug("Error:\n" + JSON.stringify(error))
     core.setFailed(error.message);
   }
 }
