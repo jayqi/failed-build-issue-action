@@ -7,8 +7,6 @@ let newIssueOrCommentForLabel = async function (githubToken, labelName, titleTem
   const octokit = github.getOctokit(githubToken);
   const context = github.context;
 
-  console.log(bodyTemplate)
-
   const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
     owner: context.repo.owner,
     repo: context.repo.repo,
