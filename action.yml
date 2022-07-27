@@ -29,9 +29,12 @@ inputs:
     description: "If true, will always create a new issue, even if one matching 'label-name' is already open."
     required: true
     default: false
+# outputs will be available to future steps
 outputs:
-  issue-number: # output will be available to future steps
+  issue-number:
     description: "Issue number of new issue or comment"
+  html-url:
+    description: "URL to new issue or comment on GitHub.com web app"
 runs:
   using: "node16"
   main: "dist/index.js"
