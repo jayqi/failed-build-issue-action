@@ -22,7 +22,7 @@ inputs:
       Branch: [{{refname}}](https://github.com/{{repo.owner}}/{{repo.repo}}/tree/{{refname}})
       Commit: [{{sha}}](https://github.com/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
 
-      <small><i>Created by [jayqi/failed-build-issue-action](https://github.com/jayqi/failed-build-issue-action)</i></small>
+      <sup><i>Created by [jayqi/failed-build-issue-action](https://github.com/jayqi/failed-build-issue-action)</i></sup>
   create-label:
     description: "Whether to create a new label for 'label-name' if it doesn't already exist."
     required: true
