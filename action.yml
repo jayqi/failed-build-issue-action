@@ -40,3 +40,6 @@ outputs:
 runs:
   using: "node16"
   main: "dist/index.js"
+branding:
+  icon: "alert-circle"
+  color: "green"
