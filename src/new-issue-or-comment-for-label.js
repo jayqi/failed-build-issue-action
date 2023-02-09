@@ -30,14 +30,19 @@ let newIssueOrCommentForLabel = async function (
     core.debug("get_label_response:\n" + JSON.stringify(get_label_response))
   }
   catch (error) {
-    if (error.message === "Not Found" && createLabel) {
-      core.info("Creating label '" + labelName + "'...")
-      const create_label_response = await octokit.rest.issues.createLabel({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        name: labelName,
-      });
-      core.debug("create_label_response:\n" + JSON.stringify(create_label_response))
+    if (error.message === "Not Found") {
+      core.info("Label '" + labelName + "' not found.")
+      if (createLabel) {
+        core.info("Creating label '" + labelName + "'...")
+        const create_label_response = await octokit.rest.issues.createLabel({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          name: labelName,
+        });
+        core.debug("create_label_response:\n" + JSON.stringify(create_label_response))
+      } else {
+        throw new Error(`Label "${labelName}" not found and createLabel = false.`);
+      }
     } else {
       throw error
     }
