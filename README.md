@@ -51,3 +51,11 @@ jobs:
 ## Title and Body Templates
 
 This action accepts title and body templates to use when creating new issues or comments. These templates can render data from the GitHub Actions run context using [mustache.js](https://github.com/janl/mustache.js/). For example, to render the run number, use the double-curly-brace mustache syntax: `{{runNumber}}`. See the attributes of the [`Context` class](https://github.com/actions/toolkit/blob/main/packages/github/src/context.ts) in actions/toolkit for available context variables that you can use. For documention on the environment variables used to populate the context, see the documentation for GitHub Actions' [default environment variables](https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables).
+
+## Comments vs. New Issues
+
+The default behavior of appending to the latest open `"build failed"` issue assumes that if the issue is still open, it is unaddressed and most likely the cause of the addiional failure.
+
+If you would like to always create a new issue, set the parameter `always-create-new-issue` to `true`.
+
+If you are sticking with the default behavior of appending a comment to the latest open issue in general, but you have a particular case where you don't want it to append a comment and instead open a new issue, you can remove the `"build failed"` label from the open issue(s). One situation where you might want to do this is if you've temporarily fixed the cause of a failure, but you want to keep the issue open to track additional to-dos.
