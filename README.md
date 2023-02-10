@@ -29,7 +29,6 @@ on:
 jobs:
   tests:
     name: Tests
-    needs: code-quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
