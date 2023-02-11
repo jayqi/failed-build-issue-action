@@ -1,5 +1,7 @@
 # Create Failed Build Issue or Comment
 
+[![tests](https://github.com/jayqi/failed-build-issue-action/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/jayqi/failed-build-issue-action/actions/workflows/tests.yml) [![codecov](https://codecov.io/github/jayqi/failed-build-issue-action/branch/main/graph/badge.svg?token=LKAEGPVU4N)](https://codecov.io/github/jayqi/failed-build-issue-action)
+
 This action makes it easy to notify maintainers of a failed GitHub Actions workflow via GitHub's issue tracker. By default, the action will find the latest open issue with the label `"build failed"` and add a comment. If no such issue is open, it will instead open a new issue.
 
 ## Basic Usage
