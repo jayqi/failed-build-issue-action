@@ -1,5 +1,6 @@
-const nock = require('nock');
+const core = require('@actions/core');
 const github = require('@actions/github');
+const nock = require('nock');
 const newIssueOrCommentForLabel = require('../src/new-issue-or-comment-for-label');
 
 // Shallow clone original @actions/github context
@@ -31,6 +32,13 @@ describe("Test newIssueOrCommentForLabel", () => {
     })
     github.context.ref = 'refs/heads/some-ref'
     github.context.sha = '1234567890123456789012345678901234567890'
+
+    // Mock error/warning/info/debug
+    jest.spyOn(core, 'error').mockImplementation(() => { })
+    jest.spyOn(core, 'warning').mockImplementation(() => { })
+    jest.spyOn(core, 'info').mockImplementation(() => { })
+    jest.spyOn(core, 'debug').mockImplementation(() => { })
+
   });
 
   afterAll(() => {
