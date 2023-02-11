@@ -255,4 +255,27 @@ describe("Test newIssueOrCommentForLabel", () => {
     expect(created).toBeTruthy();
     return
   });
+
+  it("should error label existence check is some other error", async () => {
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(400, {
+        message: "Bad Request",
+      });
+
+    await expect(
+      newIssueOrCommentForLabel(
+        "github_token_here",
+        testLabel,
+        defaultTitleTemplate,
+        defaultBodyTemplate,
+        false,
+        false,
+      )
+    )
+      .rejects
+      .toThrow("Bad Request");
+    return
+  });
 });
