@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.1 (2023-02-11)
+
+- Removed source map and license from build command because [JasonEtco/build-and-tag-action](https://github.com/JasonEtco/build-and-tag-action/issues/20) does not support additional files.
+
 ## v1.1.0 (2023-02-11)
 
 - Added tests.
