@@ -64,3 +64,27 @@ The default behavior of appending to the latest open `"build failed"` issue assu
 If you would like to always create a new issue, set the parameter `always-create-new-issue` to `true`.
 
 If you are sticking with the default behavior of appending a comment to the latest open issue in general, but you have a particular case where you don't want it to append a comment and instead open a new issue, you can remove the `"build failed"` label from the open issue(s). One situation where you might want to do this is if you've temporarily fixed the cause of a failure, but you want to keep the issue open to track additional to-dos.
+
+## Using the development version
+
+To use the development version on the `main` branch (or any other version that is not a tagged release), you will need to check out the repository and build the Node.js package. Here is an example set of steps to include in a job to use the latest version from `main`:
+
+```
+steps:
+  - name: Checkout
+    uses: actions/checkout@v2
+    with:
+      repository: jayqi/failed-build-issue-action
+      ref: main
+
+  - name: Install dependencies
+    run: npm ci
+
+  - name: Build package
+    run: npm run build
+
+  - name: Run failed-build-issue-action
+    uses: ./
+    with:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+```
