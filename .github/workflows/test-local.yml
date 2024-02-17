@@ -1,0 +1,15 @@
+name: "test-local"
+on:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Test action from local source
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run action from local source
+      uses: ./
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}

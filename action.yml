@@ -38,7 +38,7 @@ outputs:
   html-url:
     description: "URL to new issue or comment on GitHub.com web app"
 runs:
-  using: "node16"
+  using: "node20"
   main: "dist/index.js"
 branding:
   icon: "alert-circle"
