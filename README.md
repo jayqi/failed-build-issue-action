@@ -4,7 +4,7 @@
 
 This action makes it easy to notify maintainers of a failed GitHub Actions workflow via GitHub's issue tracker. By default, the action will find the latest open issue with the label `"build failed"` and add a comment. If no such issue is open, it will instead open a new issue.
 
-## Basic Usage
+## Basic usage
 
 ```yml
 - uses: jayqi/failed-build-issue-action@v1
@@ -13,6 +13,8 @@ This action makes it easy to notify maintainers of a failed GitHub Actions workf
 ```
 
 For all options, see [`action.yml`](./action.yml)
+
+See the two examples below for more realistic usage in full workflows.
 
 ## Example 1: As a step
 
@@ -134,7 +136,7 @@ You may not want `failed-build-issue-action` to not run for _all_ of the same ev
 
 See the GitHub Actions documentation for more details. The ["Using event information"](https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#using-event-information) documentation provides for information about how to use the metadata provided in the event payload. You can find a full list of supported events in ["Events that trigger workflows"](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows).
 
-## Title and Body Templates
+## Title and body templates
 
 This action accepts title and body templates to use when creating new issues or comments through the `title-template` and `body-template` parameters, respectively.
 
@@ -142,7 +144,7 @@ These templates can render data from the GitHub Actions run context using [musta
 
 If you need to inject data that isn't available from the context object within the Javascript, you can also use the GitHub Actions [expressions](https://docs.github.com/en/actions/learn-github-actions/expressions) and [workflow run context](https://docs.github.com/en/actions/learn-github-actions/contexts) to generate the strings that you pass to this action as a title or body template.
 
-## Comments vs. New Issues
+## Comments vs. new issues
 
 The default behavior of appending to the latest open `"build failed"` issue assumes that if the issue is still open, it is unaddressed and most likely the cause of the addiional failure.
 
@@ -157,7 +159,7 @@ To use the development version on the `main` branch (or any other version that i
 ```
 steps:
   - name: Checkout
-    uses: actions/checkout@v2
+    uses: actions/checkout@v4
     with:
       repository: jayqi/failed-build-issue-action
       ref: main
