@@ -14,9 +14,9 @@ This action makes it easy to notify maintainers of a failed GitHub Actions workf
 
 For all options, see [`action.yml`](./action.yml)
 
-## Full workflow example
+## Example 1: As a step
 
-Below is the basic structure of an example GitHub Workflow YAML configuration that might look like a practical example for notifying failures when running tests. In this example, we run the workflow on pull requests, pushes to the `main` branch, and on a weekly schedule. We split this workflow into two jobs: the first one is `tests` and actually runs the tests; the second is `notify` which runs after the `tests` job, and only triggers if `tests` failed and the workflow was not triggered by a pull request.
+Below is an example GitHub Workflow YAML file that demonstrates a simple case of using this action in a workflow. If your workflow just runs a single job, then you can set things up in this way. 
 
 ```yml
 name: tests
@@ -37,10 +37,68 @@ jobs:
       - name: Run tests
         run: |
           bash run_tests.sh
+      - name: Notify failed build
+        uses: jayqi/failed-build-issue-action@v1
+        if: failure() && github.event.pull_request == null
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Explanation
+
+In this example, we run `failed-build-issue-action` as a [**step**](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions#the-components-of-github-actions) in the single job in the workflow. One key part is the [`if` conditional](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsif) to control when the step runs. 
+
+```yml
+if: failure() && github.event.pull_request == null
+```
+
+There are two conditions here that we combine with a `&&` (and) operator:
+
+1. `failure()` — the step will only run if there is a failure in any previous step in this job.
+2. `github.event.pull_request == null` — In this example, we exclude pull requests because they represent in-development work where failures are more expected. See ["Conditioning on event triggers"](#conditioning-on-event-triggers) below for additional discussion.
+
+You'll want to make sure the `failed-build-issue-action` step is after any step that you might want to trigger it. 
+
+## Example 2: As a job
+
+Below is an example GitHub Workflow YAML file that demonstrates a more complex workflow with multiple jobs. If your workflow has multiple jobs, such as from a matrix, then you'll want to follow this example.
+
+```yml
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 0 * * 0"  # Run every Sunday at 00:00 UTC
+
+jobs:
+  code-quality:
+    name: Code quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run linting
+        run: |
+          bash run_linting.sh
+
+  tests:
+    name: Tests - ${{ matrix.os }}
+    needs: [code-quality]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: |
+          bash run_tests.sh
 
   notify:
     name: Notify failed build
-    needs: tests
+    needs: [code-quality, tests]
     if: failure() && github.event.pull_request == null
     runs-on: ubuntu-latest
     steps:
@@ -48,6 +106,33 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+### Explanation
+
+In this example, we've separated things out into multiple stages using [**jobs**](https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow). First, the `code-quality` job runs to perform linting. Next, if `code-quality` succeeded, the `tests` job runs on a matrix of operating systems. We want to run `failed-build-issue-action` when either `code-quality` failures or if `tests` failures on any OS. To do this, we define a separate `notify` job. We use the [`needs` keyword](https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow#defining-prerequisite-jobs) to define the prerequisite of our `notify` job. 
+
+```yml
+needs: [code-quality, tests]
+```
+
+We also use the `if` keyword to condition the `notify` job on one of its prerequisites failing, as well as skipping pull requests as described in the previous example.
+
+```yml
+if: failure() && github.event.pull_request == null
+```
+
+Note that we don't need to use `actions/checkout` in this job because it doesn't depend on any files in our repository.  
+
+## Conditioning on event triggers
+
+**Events** in GitHub Actions refer to things that can cause a workflow to run, such as a pushing a commit to a branch or pushing a commit to a pull request. 
+
+You may not want `failed-build-issue-action` to not run for _all_ of the same event triggers as the workflow itself. For instance, our examples above run on (1) commits to pull requests, (2) pushes to the main branch, and (3) on a weekly schedule on the main branch. You probably don't want to be notified for every test failure for pull requests, since in-development work is expected to fail more often. You can easily use the `github.event` payload to determine whether a particular type of event is running. For example:
+
+- `if: github.event.pull_request` will be true if it's a pull request
+- `if: github.event.pull_request == null` will be true if it's _not_ a pull request
+
+See the GitHub Actions documentation for more details. The ["Using event information"](https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#using-event-information) documentation provides for information about how to use the metadata provided in the event payload. You can find a full list of supported events in ["Events that trigger workflows"](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows).
 
 ## Title and Body Templates
 
