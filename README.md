@@ -6,6 +6,9 @@ This action makes it easy to notify maintainers of a failed GitHub Actions workf
 
 ## Basic usage
 
+> [!IMPORTANT]
+> This action requires "Read and write permissions". You can set the default permissions granted to GitHub Actions workflows by going to your repository's **Settings** > **Actions** > **General** and looking under the **Workflow permissions** section. You can also set permissions at the individual workflow level. Learn more from [GitHub's documentation about workflow permissions](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token).
+
 ```yml
 - uses: jayqi/failed-build-issue-action@v1
   with:
