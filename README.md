@@ -155,6 +155,12 @@ If you would like to always create a new issue, set the parameter `always-create
 
 If you are sticking with the default behavior of appending a comment to the latest open issue in general, but you have a particular case where you don't want it to append a comment and instead open a new issue, you can remove the `"build failed"` label from the open issue(s). One situation where you might want to do this is if you've temporarily fixed the cause of a failure, but you want to keep the issue open to track additional to-dos.
 
+## Using with GitHub Projects
+
+[GitHub Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/about-projects) is a work planning tool in GitHub that provides additional ways to view and interact with issues and pull requests across repos. Since this action just creates or interacts with issues, you can use GitHub Projects to manage those issues like any other issue.
+
+One common requirement may be to automatically add issues created by this action to a GitHub Project. You can use the built-in [auto-add workflow](https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/quickstart-for-projects#configure-built-in-automation) with the `"build failed"` label (or whatever label you've configured) to accomplish this.
+
 ## Using the development version
 
 To use the development version on the `main` branch (or any other version that is not a tagged release), you will need to check out the repository and build the Node.js package. Here is an example set of steps to include in a job to use the latest version from `main`:
