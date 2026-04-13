@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Removed unused dependency on `dist` package.
+
 ## v1.2.0 (2024-02-16)
 
 - Changed action to use [Node 20 runtime](https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/)
