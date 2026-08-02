@@ -314,10 +314,9 @@ describe("Test newIssueOrCommentForLabel", () => {
     )
       .rejects
       .toThrow(`"${testLabel}" not found and createLabel = false`);
-    return
   });
 
-  it("should create new label it's not found and if createLabel=true", async () => {
+  it("should create new label if it's not found and createLabel=true", async () => {
     // Mock check if label exists
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
@@ -366,7 +365,7 @@ describe("Test newIssueOrCommentForLabel", () => {
     });
   });
 
-  it("should error label existence check is some other error", async () => {
+  it("should error if label existence check returns some other error", async () => {
     // Mock check if label exists
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
@@ -386,6 +385,5 @@ describe("Test newIssueOrCommentForLabel", () => {
     )
       .rejects
       .toThrow("Bad Request");
-    return
   });
 });
