@@ -3,7 +3,8 @@ const github = require('@actions/github');
 var Mustache = require('mustache');
 
 // The output target is markdown/plain text, not HTML, so Mustache's default
-// HTML escaping only corrupts titles and code spans without preventing anything.
+// HTML escaping corrupts titles and code spans while adding no protection
+// beyond GitHub's own server-side sanitization of issue bodies.
 const render = (template, view) => Mustache.render(template, view, {}, { escape: (v) => v });
 
 let newIssueOrCommentForLabel = async function (

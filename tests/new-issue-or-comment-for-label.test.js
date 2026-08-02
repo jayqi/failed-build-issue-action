@@ -92,11 +92,18 @@ describe("Test newIssueOrCommentForLabel", () => {
     });
   })
 
+  // Tests that need a special-character workflow name mutate the shared context,
+  // so snapshot and restore it unconditionally rather than in each test's finally
+  // -- a throw during nock setup would otherwise leak the name into later tests.
+  let originalWorkflow;
+
   beforeEach(() => {
     captured = {};
+    originalWorkflow = github.context.workflow;
   });
 
   afterEach(() => {
+    github.context.workflow = originalWorkflow;
     // Every endpoint a test mocks should actually have been called. cleanAll has
     // to run even when that assertion fails, or the unconsumed interceptors leak
     // into the next test and one real failure takes the whole suite down with it.
@@ -394,7 +401,6 @@ describe("Test newIssueOrCommentForLabel", () => {
 
   it("should not HTML-escape special characters in the issue title", async () => {
     const specialWorkflow = `Build & Test's "Suite"`;
-    const originalWorkflow = github.context.workflow;
     github.context.workflow = specialWorkflow;
 
     // Mock check if label exists
@@ -419,25 +425,20 @@ describe("Test newIssueOrCommentForLabel", () => {
         html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
       });
 
-    try {
-      await newIssueOrCommentForLabel(
-        "github_token_here",
-        testLabel,
-        defaultTitleTemplate,
-        defaultBodyTemplate,
-        true,
-        false,
-      )
-      expect(captured.createIssue.title).toBe(`Failed build: ${specialWorkflow}`);
-    } finally {
-      github.context.workflow = originalWorkflow;
-    }
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    expect(captured.createIssue.title).toBe(`Failed build: ${specialWorkflow}`);
   });
 
   it("should not HTML-escape special characters wrapped in backticks in the issue body", async () => {
     const specialWorkflow = `Build & Test's "Suite"`;
     const bodyTemplateWithCodeSpan = "Workflow `{{workflow}}` failed on `{{refname}}`.";
-    const originalWorkflow = github.context.workflow;
     github.context.workflow = specialWorkflow;
 
     // Mock check if label exists
@@ -462,18 +463,14 @@ describe("Test newIssueOrCommentForLabel", () => {
         html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
       });
 
-    try {
-      await newIssueOrCommentForLabel(
-        "github_token_here",
-        testLabel,
-        defaultTitleTemplate,
-        bodyTemplateWithCodeSpan,
-        true,
-        false,
-      )
-      expect(captured.createIssue.body).toBe(`Workflow \`${specialWorkflow}\` failed on \`${testRefName}\`.`);
-    } finally {
-      github.context.workflow = originalWorkflow;
-    }
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      bodyTemplateWithCodeSpan,
+      true,
+      false,
+    )
+    expect(captured.createIssue.body).toBe(`Workflow \`${specialWorkflow}\` failed on \`${testRefName}\`.`);
   });
 });
