@@ -97,9 +97,14 @@ describe("Test newIssueOrCommentForLabel", () => {
   });
 
   afterEach(() => {
-    // Every endpoint a test mocks should actually have been called
-    expect(nock.pendingMocks()).toEqual([]);
-    nock.cleanAll();
+    // Every endpoint a test mocks should actually have been called. cleanAll has
+    // to run even when that assertion fails, or the unconsumed interceptors leak
+    // into the next test and one real failure takes the whole suite down with it.
+    try {
+      expect(nock.pendingMocks()).toEqual([]);
+    } finally {
+      nock.cleanAll();
+    }
   });
 
   it('should create new issue if no issues exist for label', async () => {
@@ -313,7 +318,7 @@ describe("Test newIssueOrCommentForLabel", () => {
       )
     )
       .rejects
-      .toThrow(`"${testLabel}" not found and createLabel = false`);
+      .toThrow(new Error(`Label "${testLabel}" not found and createLabel = false.`));
   });
 
   it("should create new label if it's not found and createLabel=true", async () => {
@@ -384,6 +389,6 @@ describe("Test newIssueOrCommentForLabel", () => {
       )
     )
       .rejects
-      .toThrow("Bad Request");
+      .toThrow(new Error("Bad Request"));
   });
 });
