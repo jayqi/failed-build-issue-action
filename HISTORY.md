@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed title and body templates HTML-escaping rendered values, which corrupted issue titles and code spans in issue and comment bodies.
 - Removed unused dependency on `dist` package.
 
 ## v1.2.0 (2024-02-16)

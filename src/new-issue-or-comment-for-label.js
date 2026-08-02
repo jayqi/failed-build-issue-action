@@ -2,6 +2,11 @@ const core = require('@actions/core');
 const github = require('@actions/github');
 var Mustache = require('mustache');
 
+// The output target is markdown/plain text, not HTML, so Mustache's default
+// HTML escaping corrupts titles and code spans while adding no protection
+// beyond GitHub's own server-side sanitization of issue bodies.
+const render = (template, view) => Mustache.render(template, view, {}, { escape: (v) => v });
+
 let newIssueOrCommentForLabel = async function (
   githubToken, labelName, titleTemplate, bodyTemplate, createLabel, alwaysCreateNewIssue
 ) {
@@ -68,8 +73,8 @@ let newIssueOrCommentForLabel = async function (
     create_issue_or_comment_response = await octokit.rest.issues.create({
       owner: context.repo.owner,
       repo: context.repo.repo,
-      title: Mustache.render(titleTemplate, context),
-      body: Mustache.render(bodyTemplate, context),
+      title: render(titleTemplate, context),
+      body: render(bodyTemplate, context),
       labels: [labelName],
     });
     issueNumber = create_issue_or_comment_response.data.number;
@@ -80,7 +85,7 @@ let newIssueOrCommentForLabel = async function (
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: issueNumber,
-      body: Mustache.render(bodyTemplate, context),
+      body: render(bodyTemplate, context),
     });
   }
 

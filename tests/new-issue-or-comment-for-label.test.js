@@ -92,11 +92,18 @@ describe("Test newIssueOrCommentForLabel", () => {
     });
   })
 
+  // Tests that need a special-character workflow name mutate the shared context,
+  // so snapshot and restore it unconditionally rather than in each test's finally
+  // -- a throw during nock setup would otherwise leak the name into later tests.
+  let originalWorkflow;
+
   beforeEach(() => {
     captured = {};
+    originalWorkflow = github.context.workflow;
   });
 
   afterEach(() => {
+    github.context.workflow = originalWorkflow;
     // Every endpoint a test mocks should actually have been called. cleanAll has
     // to run even when that assertion fails, or the unconsumed interceptors leak
     // into the next test and one real failure takes the whole suite down with it.
@@ -390,5 +397,80 @@ describe("Test newIssueOrCommentForLabel", () => {
     )
       .rejects
       .toThrow(new Error("Bad Request"));
+  });
+
+  it("should not HTML-escape special characters in the issue title", async () => {
+    const specialWorkflow = `Build & Test's "Suite"`;
+    github.context.workflow = specialWorkflow;
+
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    const newIssueNumber = 100;
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: newIssueNumber,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    expect(captured.createIssue.title).toBe(`Failed build: ${specialWorkflow}`);
+  });
+
+  it("should not HTML-escape special characters wrapped in backticks in the issue body", async () => {
+    const specialWorkflow = `Build & Test's "Suite"`;
+    const bodyTemplateWithCodeSpan = "Workflow `{{workflow}}` failed on `{{refname}}`.";
+    github.context.workflow = specialWorkflow;
+
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    const newIssueNumber = 100;
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: newIssueNumber,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      bodyTemplateWithCodeSpan,
+      true,
+      false,
+    )
+    expect(captured.createIssue.body).toBe(`Workflow \`${specialWorkflow}\` failed on \`${testRefName}\`.`);
   });
 });
