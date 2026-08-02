@@ -160,18 +160,24 @@ describe("Test newIssueOrCommentForLabel", () => {
     const existingIssueNumber = 1;
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/issues`)
-      .query(true)
+      .query(capture('listIssues'))
       .reply(200, [
         {
           number: existingIssueNumber,
         }
       ]);
     // Mock create comment on existing issue
+    const testCommentHtmlUrl =
+      `https://github.com/${testOwner}/${testRepo}/issues/${existingIssueNumber}#issuecomment-1`;
     nock("https://api.github.com")
-      .post(`/repos/${testOwner}/${testRepo}/issues/${existingIssueNumber}/comments`)
+      .post(
+        `/repos/${testOwner}/${testRepo}/issues/${existingIssueNumber}/comments`,
+        capture('createComment'),
+      )
       .reply(200,
         {
           id: 1,
+          html_url: testCommentHtmlUrl,
         }
       );
 
@@ -183,9 +189,14 @@ describe("Test newIssueOrCommentForLabel", () => {
       true,
       false,
     )
+    expect(captured.listIssues).toEqual(expectedListQuery);
+    // A comment carries only a body -- no title, no labels
+    expect(captured.createComment).toEqual({ body: expectedBody });
     expect(issueNumber).toBe(existingIssueNumber);
-    expect(created).toBeTruthy();
-    return
+    expect(created).toEqual({
+      id: 1,
+      html_url: testCommentHtmlUrl,
+    });
   });
 
   it('should create new issue if alwaysCreateNewIssue=true with existing issue', async () => {
@@ -314,21 +325,23 @@ describe("Test newIssueOrCommentForLabel", () => {
         message: "Not Found",
       });
     nock("https://api.github.com")
-      .post(`/repos/${testOwner}/${testRepo}/labels`)
+      .post(`/repos/${testOwner}/${testRepo}/labels`, capture('createLabel'))
       .reply(201, {
         name: testLabel,
       });
     // Mock search issues with label
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/issues`)
-      .query(true)
+      .query(capture('listIssues'))
       .reply(200, []);
     // Mock create new issue
     const newIssueNumber = 100;
+    const testIssueHtmlUrl = `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`;
     nock("https://api.github.com")
-      .post(`/repos/${testOwner}/${testRepo}/issues`)
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
       .reply(200, {
         number: newIssueNumber,
+        html_url: testIssueHtmlUrl,
       });
 
     const { issueNumber, created } = await newIssueOrCommentForLabel(
@@ -339,9 +352,18 @@ describe("Test newIssueOrCommentForLabel", () => {
       true,
       false,
     )
+    expect(captured.createLabel).toEqual({ name: testLabel });
+    expect(captured.listIssues).toEqual(expectedListQuery);
+    expect(captured.createIssue).toEqual({
+      title: expectedTitle,
+      body: expectedBody,
+      labels: [testLabel],
+    });
     expect(issueNumber).toBe(newIssueNumber);
-    expect(created).toBeTruthy();
-    return
+    expect(created).toEqual({
+      number: newIssueNumber,
+      html_url: testIssueHtmlUrl,
+    });
   });
 
   it("should error label existence check is some other error", async () => {
