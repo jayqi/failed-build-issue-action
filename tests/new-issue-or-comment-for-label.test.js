@@ -114,14 +114,16 @@ describe("Test newIssueOrCommentForLabel", () => {
     // Mock search issues with label
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/issues`)
-      .query(true)
+      .query(capture('listIssues'))
       .reply(200, []);
     // Mock create new issue
     const newIssueNumber = 100;
+    const testIssueHtmlUrl = `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`;
     nock("https://api.github.com")
-      .post(`/repos/${testOwner}/${testRepo}/issues`)
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
       .reply(200, {
         number: newIssueNumber,
+        html_url: testIssueHtmlUrl,
       });
 
     const { issueNumber, created } = await newIssueOrCommentForLabel(
@@ -132,9 +134,17 @@ describe("Test newIssueOrCommentForLabel", () => {
       true,
       false,
     )
+    expect(captured.listIssues).toEqual(expectedListQuery);
+    expect(captured.createIssue).toEqual({
+      title: expectedTitle,
+      body: expectedBody,
+      labels: [testLabel],
+    });
     expect(issueNumber).toBe(newIssueNumber);
-    expect(created).toBeTruthy();
-    return
+    expect(created).toEqual({
+      number: newIssueNumber,
+      html_url: testIssueHtmlUrl,
+    });
   });
 
   it('should add comment to existing issue for label', async () => {
@@ -191,7 +201,7 @@ describe("Test newIssueOrCommentForLabel", () => {
     const existingIssueNumber = 1;
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/issues`)
-      .query(true)
+      .query(capture('listIssues'))
       .reply(200, [
         {
           number: existingIssueNumber,
@@ -199,10 +209,12 @@ describe("Test newIssueOrCommentForLabel", () => {
       ]);
     // Mock create new issue
     const newIssueNumber = 100;
+    const testIssueHtmlUrl = `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`;
     nock("https://api.github.com")
-      .post(`/repos/${testOwner}/${testRepo}/issues`)
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
       .reply(200, {
         number: newIssueNumber,
+        html_url: testIssueHtmlUrl,
       });
 
     const { issueNumber, created } = await newIssueOrCommentForLabel(
@@ -213,9 +225,17 @@ describe("Test newIssueOrCommentForLabel", () => {
       false,
       true,
     )
+    expect(captured.listIssues).toEqual(expectedListQuery);
+    expect(captured.createIssue).toEqual({
+      title: expectedTitle,
+      body: expectedBody,
+      labels: [testLabel],
+    });
     expect(issueNumber).toBe(newIssueNumber);
-    expect(created).toBeTruthy();
-    return
+    expect(created).toEqual({
+      number: newIssueNumber,
+      html_url: testIssueHtmlUrl,
+    });
   });
 
   it('should create new issue if alwaysCreateNewIssue=true and no existing issue', async () => {
@@ -230,14 +250,16 @@ describe("Test newIssueOrCommentForLabel", () => {
     // Mock search issues with label
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/issues`)
-      .query(true)
+      .query(capture('listIssues'))
       .reply(200, []);
     // Mock create new issue
     const newIssueNumber = 100;
+    const testIssueHtmlUrl = `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`;
     nock("https://api.github.com")
-      .post(`/repos/${testOwner}/${testRepo}/issues`)
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
       .reply(200, {
         number: newIssueNumber,
+        html_url: testIssueHtmlUrl,
       });
 
     const { issueNumber, created } = await newIssueOrCommentForLabel(
@@ -248,9 +270,17 @@ describe("Test newIssueOrCommentForLabel", () => {
       false,
       true,
     )
+    expect(captured.listIssues).toEqual(expectedListQuery);
+    expect(captured.createIssue).toEqual({
+      title: expectedTitle,
+      body: expectedBody,
+      labels: [testLabel],
+    });
     expect(issueNumber).toBe(newIssueNumber);
-    expect(created).toBeTruthy();
-    return
+    expect(created).toEqual({
+      number: newIssueNumber,
+      html_url: testIssueHtmlUrl,
+    });
   });
 
   it("should error if label is not found and if createLabel=false", async () => {
