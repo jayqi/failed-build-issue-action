@@ -1,4 +1,4 @@
+/* istanbul ignore file */
 const { run } = require('./main');
 
-/* istanbul ignore next */
 run();

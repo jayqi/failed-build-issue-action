@@ -8,6 +8,11 @@
     "lint": "eslint ./src && eslint ./tests",
     "test": "jest --coverage"
   },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jayqi/failed-build-issue-action.git"
