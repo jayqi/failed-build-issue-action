@@ -421,9 +421,6 @@ describe("Test newIssueOrCommentForLabel", () => {
     );
   });
 
-  // Tag refs take the other side of the refs/(heads|tags) alternation. Istanbul does
-  // not instrument alternations, so dropping |tags would leave coverage at 100% while
-  // silently rendering tag names as refs/tags/<name>. Only a test catches that.
   it("should keep full tag name in refname when ref is a tag containing slashes", async () => {
     const slashedTagName = "release/2024";
     github.context.ref = `refs/tags/${slashedTagName}`;
