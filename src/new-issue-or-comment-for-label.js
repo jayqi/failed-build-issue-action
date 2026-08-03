@@ -15,11 +15,7 @@ let newIssueOrCommentForLabel = async function (
   const octokit = github.getOctokit(githubToken);
   const context = Object.assign(
     github.context,
-    // Branch or tag name, i.e. the ref with its refs/heads/ or refs/tags/ prefix
-    // stripped. Only the prefix is removed -- taking the last path segment would
-    // truncate names that contain slashes, like releases/v1. Refs of other types
-    // have no short form and pass through whole, e.g. pull_request's
-    // refs/pull/<n>/merge.
+    // Branch or tag name, i.e., ref with its refs/heads/ or refs/tags/ prefix stripped
     { refname: github.context.ref.replace(/^refs\/(heads|tags)\//, "") }
   )
 
