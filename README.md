@@ -149,9 +149,7 @@ In addition to the attributes of the `Context` class, this action provides one v
 
 | Variable | Description |
 | --- | --- |
-| `refname` | The branch or tag name, i.e., `{{ref}}` with its `refs/heads/` or `refs/tags/` prefix removed. Names containing slashes are preserved in full, so a push to `releases/v1` renders as `releases/v1`. Refs that are neither branches nor tags have no short form and render unchanged — notably, a `pull_request` event renders as `refs/pull/<n>/merge`. Because of this, the branch link in the default body template is only meaningful for events that build a branch or tag; see [Conditioning on event triggers](#conditioning-on-event-triggers). |
-
-Note that the default templates link to `https://github.com`. If you are on GitHub Enterprise Server, use `{{serverUrl}}` in place of the hardcoded host.
+| `refname` | The branch or tag name, i.e., `{{ref}}` with its `refs/heads/` or `refs/tags/` prefix removed. |
 
 If you need to inject data that isn't available from the context object within the Javascript, you can also use the GitHub Actions [expressions](https://docs.github.com/en/actions/learn-github-actions/expressions) and [workflow run context](https://docs.github.com/en/actions/learn-github-actions/contexts) to generate the strings that you pass to this action as a title or body template.
 
