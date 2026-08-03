@@ -145,6 +145,14 @@ This action accepts title and body templates to use when creating new issues or 
 
 These templates can render data from the GitHub Actions run context using [mustache.js](https://github.com/janl/mustache.js/). For example, to render the run number, use the double-curly-brace mustache syntax: `{{runNumber}}`. See the attributes of the [`Context` class](https://github.com/actions/toolkit/blob/main/packages/github/src/context.ts) in actions/toolkit for available context variables that you can use. For documention on the environment variables used to populate the context, see the documentation for GitHub Actions' [default environment variables](https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables).
 
+In addition to the attributes of the `Context` class, this action provides one variable of its own:
+
+| Variable | Description |
+| --- | --- |
+| `refname` | The branch or tag name, i.e., `{{ref}}` with its `refs/heads/` or `refs/tags/` prefix removed. Names containing slashes are preserved in full, so a push to `releases/v1` renders as `releases/v1`. Refs that are neither branches nor tags have no short form and render unchanged — notably, a `pull_request` event renders as `refs/pull/<n>/merge`. Because of this, the branch link in the default body template is only meaningful for events that build a branch or tag; see [Conditioning on event triggers](#conditioning-on-event-triggers). |
+
+Note that the default templates link to `https://github.com`. If you are on GitHub Enterprise Server, use `{{serverUrl}}` in place of the hardcoded host.
+
 If you need to inject data that isn't available from the context object within the Javascript, you can also use the GitHub Actions [expressions](https://docs.github.com/en/actions/learn-github-actions/expressions) and [workflow run context](https://docs.github.com/en/actions/learn-github-actions/contexts) to generate the strings that you pass to this action as a title or body template.
 
 ## Comments vs. new issues

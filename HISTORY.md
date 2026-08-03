@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed the `refname` template variable truncating branch and tag names that contain slashes. A push to `releases/v1` previously rendered as `v1`, producing a branch link that 404'd. Only the `refs/heads/` or `refs/tags/` prefix is now stripped. Note that refs of other types, such as the `refs/pull/<n>/merge` ref of a `pull_request` event, have no short form and now render in full rather than as their last path segment.
 - Fixed title and body templates HTML-escaping rendered values, which corrupted issue titles and code spans in issue and comment bodies.
 - Removed unused dependency on `dist` package.
 

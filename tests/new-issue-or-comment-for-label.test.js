@@ -92,18 +92,23 @@ describe("Test newIssueOrCommentForLabel", () => {
     });
   })
 
-  // Tests that need a special-character workflow name mutate the shared context,
-  // so snapshot and restore it unconditionally rather than in each test's finally
-  // -- a throw during nock setup would otherwise leak the name into later tests.
+  // Tests that need a particular workflow name or ref mutate the shared context, so
+  // snapshot and restore those fields unconditionally rather than in each test's
+  // finally -- a throw during nock setup would otherwise leak the value into later
+  // tests. Snapshotting also avoids hardcoding the restore value, which would go
+  // stale if the beforeAll defaults above change.
   let originalWorkflow;
+  let originalRef;
 
   beforeEach(() => {
     captured = {};
     originalWorkflow = github.context.workflow;
+    originalRef = github.context.ref;
   });
 
   afterEach(() => {
     github.context.workflow = originalWorkflow;
+    github.context.ref = originalRef;
     // Every endpoint a test mocks should actually have been called. cleanAll has
     // to run even when that assertion fails, or the unconsumed interceptors leak
     // into the next test and one real failure takes the whole suite down with it.
@@ -375,6 +380,87 @@ describe("Test newIssueOrCommentForLabel", () => {
       number: newIssueNumber,
       html_url: testIssueHtmlUrl,
     });
+  });
+
+  it("should keep full branch name in refname when ref contains slashes", async () => {
+    const slashedRefName = "feature/foo";
+    github.context.ref = `refs/heads/${slashedRefName}`;
+
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    const newIssueNumber = 100;
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: newIssueNumber,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    expect(captured.createIssue.body).toContain(
+      `[${slashedRefName}](https://github.com/${testOwner}/${testRepo}/tree/${slashedRefName})`
+    );
+  });
+
+  // Tag refs take the other side of the refs/(heads|tags) alternation. Istanbul does
+  // not instrument alternations, so dropping |tags would leave coverage at 100% while
+  // silently rendering tag names as refs/tags/<name>. Only a test catches that.
+  it("should keep full tag name in refname when ref is a tag containing slashes", async () => {
+    const slashedTagName = "release/2024";
+    github.context.ref = `refs/tags/${slashedTagName}`;
+
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    const newIssueNumber = 100;
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: newIssueNumber,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    expect(captured.createIssue.body).toContain(
+      `[${slashedTagName}](https://github.com/${testOwner}/${testRepo}/tree/${slashedTagName})`
+    );
   });
 
   it("should error if label existence check returns some other error", async () => {
