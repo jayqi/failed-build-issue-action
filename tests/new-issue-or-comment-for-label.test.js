@@ -14,26 +14,27 @@ const testRunNumber = 42;
 const testRunId = 1234567890;
 const testEventName = "push";
 const testRefName = "some-ref";
+const testServerUrl = "https://github.com";
 const testSha = "1234567890123456789012345678901234567890";
 
 // Keep these in sync with the defaults in action.yml
 const defaultTitleTemplate = "Failed build: {{workflow}}";
-const defaultBodyTemplate = `GitHub Actions workflow [{{workflow}} #{{runNumber}}](https://github.com/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runId}}) failed.
+const defaultBodyTemplate = `GitHub Actions workflow [{{workflow}} #{{runNumber}}]({{serverUrl}}/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runId}}) failed.
 
 Event: {{eventName}}
-Branch: [{{refname}}](https://github.com/{{repo.owner}}/{{repo.repo}}/tree/{{refname}})
-Commit: [{{sha}}](https://github.com/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
+Branch: [{{refName}}]({{refUrl}})
+Commit: [{{sha}}]({{serverUrl}}/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
 
 <sup><i>Created by [jayqi/failed-build-issue-action](https://github.com/jayqi/failed-build-issue-action)</i></sup>
 `;
 
 // What the templates above must render to, given the context mocked in beforeAll
 const expectedTitle = `Failed build: ${testWorkflow}`;
-const expectedBody = `GitHub Actions workflow [${testWorkflow} #${testRunNumber}](https://github.com/${testOwner}/${testRepo}/actions/runs/${testRunId}) failed.
+const expectedBody = `GitHub Actions workflow [${testWorkflow} #${testRunNumber}](${testServerUrl}/${testOwner}/${testRepo}/actions/runs/${testRunId}) failed.
 
 Event: ${testEventName}
-Branch: [${testRefName}](https://github.com/${testOwner}/${testRepo}/tree/${testRefName})
-Commit: [${testSha}](https://github.com/${testOwner}/${testRepo}/commit/${testSha})
+Branch: [${testRefName}](${testServerUrl}/${testOwner}/${testRepo}/tree/${testRefName})
+Commit: [${testSha}](${testServerUrl}/${testOwner}/${testRepo}/commit/${testSha})
 
 <sup><i>Created by [jayqi/failed-build-issue-action](https://github.com/jayqi/failed-build-issue-action)</i></sup>
 `;
@@ -47,6 +48,18 @@ const expectedListQuery = {
   per_page: "1",
   page: "1",
 };
+
+// Assigning undefined to a process.env key stores the string "undefined".
+const restoreEnv = (key, value) => {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+};
+
+// Snapshot before beforeAll overwrites it; Jest workers share process.env.
+const originalEnvRefName = process.env.GITHUB_REF_NAME;
 
 describe("Test newIssueOrCommentForLabel", () => {
   // Request bodies and query strings captured by the nock interceptors, so that
@@ -67,7 +80,11 @@ describe("Test newIssueOrCommentForLabel", () => {
         repo: testRepo
       }
     })
-    github.context.ref = `refs/heads/${testRefName}`
+    // An explicit empty payload, so the default case does not depend on whether
+    // GITHUB_EVENT_PATH happens to be set in the running environment.
+    github.context.payload = {}
+    github.context.serverUrl = testServerUrl
+    process.env.GITHUB_REF_NAME = testRefName
     github.context.sha = testSha
     github.context.workflow = testWorkflow
     github.context.runNumber = testRunNumber
@@ -85,6 +102,7 @@ describe("Test newIssueOrCommentForLabel", () => {
   });
 
   afterAll(() => {
+    restoreEnv('GITHUB_REF_NAME', originalEnvRefName);
     nock.enableNetConnect();
     // Restore original @actions/github context
     Object.defineProperty(github, 'context', {
@@ -92,18 +110,29 @@ describe("Test newIssueOrCommentForLabel", () => {
     });
   })
 
-  // Tests that need a special-character workflow name mutate the shared context,
-  // so snapshot and restore it unconditionally rather than in each test's finally
-  // -- a throw during nock setup would otherwise leak the name into later tests.
+  // Restored unconditionally rather than in each test's finally: a throw during
+  // nock setup would otherwise leak the value into later tests. Snapshotted rather
+  // than hardcoded so the restore cannot go stale against the beforeAll defaults.
   let originalWorkflow;
+  let originalPayload;
+  let originalServerUrl;
+  let originalRefName;
 
   beforeEach(() => {
     captured = {};
     originalWorkflow = github.context.workflow;
+    originalPayload = github.context.payload;
+    originalServerUrl = github.context.serverUrl;
+    originalRefName = process.env.GITHUB_REF_NAME;
+    // The deprecation tests assert on call count, so history must not leak in.
+    core.warning.mockClear();
   });
 
   afterEach(() => {
     github.context.workflow = originalWorkflow;
+    github.context.payload = originalPayload;
+    github.context.serverUrl = originalServerUrl;
+    restoreEnv('GITHUB_REF_NAME', originalRefName);
     // Every endpoint a test mocks should actually have been called. cleanAll has
     // to run even when that assertion fails, or the unconsumed interceptors leak
     // into the next test and one real failure takes the whole suite down with it.
@@ -377,6 +406,184 @@ describe("Test newIssueOrCommentForLabel", () => {
     });
   });
 
+  it("should link to the fork's branch for a pull request from a fork", async () => {
+    const forkOwner = "contributor";
+    const forkBranch = "feature/foo";
+    github.context.payload = {
+      pull_request: {
+        head: {
+          ref: forkBranch,
+          repo: {
+            full_name: `${forkOwner}/${testRepo}`,
+            html_url: `${testServerUrl}/${forkOwner}/${testRepo}`,
+            owner: { login: forkOwner },
+          },
+        },
+      },
+    };
+
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    const newIssueNumber = 100;
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: newIssueNumber,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    expect(captured.createIssue.body).toContain(
+      `Branch: [${forkOwner}:${forkBranch}](${testServerUrl}/${forkOwner}/${testRepo}/tree/${forkBranch})`
+    );
+  });
+
+  // The alias's only coverage. Without it a future cleanup would drop the alias and
+  // nothing would fail, because Mustache renders an unknown key as an empty string.
+  it("should still render the deprecated refname alias", async () => {
+    // Both templates use the old name, so the getter is read twice. That is what
+    // makes the warn-once assertion below meaningful rather than trivially true.
+    const aliasTitleTemplate = "title {{refname}}";
+    const aliasTemplate = "new={{refName}} old={{refname}}";
+
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    const newIssueNumber = 100;
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: newIssueNumber,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      aliasTitleTemplate,
+      aliasTemplate,
+      true,
+      false,
+    )
+    expect(captured.createIssue.title).toBe(`title ${testRefName}`);
+    expect(captured.createIssue.body).toBe(`new=${testRefName} old=${testRefName}`);
+    expect(core.warning).toHaveBeenCalledTimes(1);
+    expect(core.warning).toHaveBeenCalledWith(
+      expect.stringContaining("'refname' template variable is deprecated")
+    );
+  });
+
+  // Guards the alias being non-enumerable: made enumerable, the core.debug
+  // JSON.stringify would read it and every run would warn. Nothing else catches that.
+  it("should not warn when the templates use only the current variable names", async () => {
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    const newIssueNumber = 100;
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: newIssueNumber,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  it("should use serverUrl for every link, not a hardcoded github.com", async () => {
+    // Assigned directly, not via GITHUB_SERVER_URL: Context reads that in its
+    // constructor, and this suite mutates the already-constructed singleton.
+    const ghesUrl = "https://github.example.com";
+    github.context.serverUrl = ghesUrl;
+
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    const newIssueNumber = 100;
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: newIssueNumber,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    const body = captured.createIssue.body;
+    expect(body).toContain(`(${ghesUrl}/${testOwner}/${testRepo}/actions/runs/${testRunId})`);
+    expect(body).toContain(`(${ghesUrl}/${testOwner}/${testRepo}/tree/${testRefName})`);
+    expect(body).toContain(`(${ghesUrl}/${testOwner}/${testRepo}/commit/${testSha})`);
+    // Scoped to the user's repo path -- the footer link to this action's own
+    // repository is legitimately on github.com.
+    expect(body).not.toContain(`https://github.com/${testOwner}/${testRepo}`);
+  });
+
   it("should error if label existence check returns some other error", async () => {
     // Mock check if label exists
     nock("https://api.github.com")
@@ -438,7 +645,7 @@ describe("Test newIssueOrCommentForLabel", () => {
 
   it("should not HTML-escape special characters wrapped in backticks in the issue body", async () => {
     const specialWorkflow = `Build & Test's "Suite"`;
-    const bodyTemplateWithCodeSpan = "Workflow `{{workflow}}` failed on `{{refname}}`.";
+    const bodyTemplateWithCodeSpan = "Workflow `{{workflow}}` failed on `{{refName}}`.";
     github.context.workflow = specialWorkflow;
 
     // Mock check if label exists

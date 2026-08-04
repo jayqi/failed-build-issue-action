@@ -1,6 +1,7 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 var Mustache = require('mustache');
+const resolveRef = require('./resolve-ref');
 
 // The output target is markdown/plain text, not HTML, so Mustache's default
 // HTML escaping corrupts titles and code spans while adding no protection
@@ -13,10 +14,30 @@ let newIssueOrCommentForLabel = async function (
   // octokit client
   // https://octokit.github.io/rest.js/
   const octokit = github.getOctokit(githubToken);
-  const context = Object.assign(
-    github.context,
-    { refname: github.context.ref.split("/").pop() } // just the branch or tag name
-  )
+  const ref = resolveRef(github.context, process.env)
+  const context = Object.assign(github.context, ref)
+
+  // Deprecated alias for refName; remove at the next major version. Mustache renders
+  // an unknown key as an empty string rather than erroring, so simply dropping it
+  // would turn "Branch: [main](...)" into "Branch: []()" with no diagnostic.
+  //
+  // Non-enumerable is load-bearing: core.debug below JSON.stringifies this object,
+  // and an enumerable property would be read there and warn on every run.
+  let warnedRefname = false
+  Object.defineProperty(context, 'refname', {
+    get() {
+      if (!warnedRefname) {
+        warnedRefname = true
+        core.warning(
+          "The 'refname' template variable is deprecated and will be removed in a " +
+          "future major version. Use 'refName' instead, or 'refUrl' for a branch link."
+        )
+      }
+      return ref.refName
+    },
+    enumerable: false,
+    configurable: true,
+  })
 
   core.debug("labelName: " + labelName)
   core.debug("titleTemplate: " + titleTemplate)
