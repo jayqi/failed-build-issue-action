@@ -21,7 +21,7 @@ See the two examples below for more realistic usage in full workflows.
 
 ## Example 1: As a step
 
-Below is an example GitHub Workflow YAML file that demonstrates a simple case of using this action in a workflow. If your workflow just runs a single job, then you can set things up in this way. 
+Below is an example GitHub Workflow YAML file that demonstrates a simple case of using this action in a workflow. If your workflow just runs a single job, then you can set things up in this way.
 
 ```yml
 name: tests
@@ -51,7 +51,7 @@ jobs:
 
 ### Explanation
 
-In this example, we run `failed-build-issue-action` as a [**step**](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions#the-components-of-github-actions) in the single job in the workflow. One key part is the [`if` conditional](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsif) to control when the step runs. 
+In this example, we run `failed-build-issue-action` as a [**step**](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions#the-components-of-github-actions) in the single job in the workflow. One key part is the [`if` conditional](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsif) to control when the step runs.
 
 ```yml
 if: failure() && github.event.pull_request == null
@@ -62,7 +62,7 @@ There are two conditions here that we combine with a `&&` (and) operator:
 1. `failure()` — the step will only run if there is a failure in any previous step in this job.
 2. `github.event.pull_request == null` — In this example, we exclude pull requests because they represent in-development work where failures are more expected. See ["Conditioning on event triggers"](#conditioning-on-event-triggers) below for additional discussion.
 
-You'll want to make sure the `failed-build-issue-action` step is after any step that you might want to trigger it. 
+You'll want to make sure the `failed-build-issue-action` step is after any step that you might want to trigger it.
 
 ## Example 2: As a job
 
@@ -114,7 +114,7 @@ jobs:
 
 ### Explanation
 
-In this example, we've separated things out into multiple stages using [**jobs**](https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow). First, the `code-quality` job runs to perform linting. Next, if `code-quality` succeeded, the `tests` job runs on a matrix of operating systems. We want to run `failed-build-issue-action` when either `code-quality` failures or if `tests` failures on any OS. To do this, we define a separate `notify` job. We use the [`needs` keyword](https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow#defining-prerequisite-jobs) to define the prerequisite of our `notify` job. 
+In this example, we've separated things out into multiple stages using [**jobs**](https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow). First, the `code-quality` job runs to perform linting. Next, if `code-quality` succeeded, the `tests` job runs on a matrix of operating systems. We want to run `failed-build-issue-action` when either `code-quality` failures or if `tests` failures on any OS. To do this, we define a separate `notify` job. We use the [`needs` keyword](https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow#defining-prerequisite-jobs) to define the prerequisite of our `notify` job.
 
 ```yml
 needs: [code-quality, tests]
@@ -126,11 +126,11 @@ We also use the `if` keyword to condition the `notify` job on one of its prerequ
 if: failure() && github.event.pull_request == null
 ```
 
-Note that we don't need to use `actions/checkout` in this job because it doesn't depend on any files in our repository.  
+Note that we don't need to use `actions/checkout` in this job because it doesn't depend on any files in our repository.
 
 ## Conditioning on event triggers
 
-**Events** in GitHub Actions refer to things that can cause a workflow to run, such as a pushing a commit to a branch or pushing a commit to a pull request. 
+**Events** in GitHub Actions refer to things that can cause a workflow to run, such as a pushing a commit to a branch or pushing a commit to a pull request.
 
 You may not want `failed-build-issue-action` to not run for _all_ of the same event triggers as the workflow itself. For instance, our examples above run on (1) commits to pull requests, (2) pushes to the main branch, and (3) on a weekly schedule on the main branch. You probably don't want to be notified for every test failure for pull requests, since in-development work is expected to fail more often. You can easily use the `github.event` payload to determine whether a particular type of event is running. For example:
 
@@ -144,6 +144,26 @@ See the GitHub Actions documentation for more details. The ["Using event informa
 This action accepts title and body templates to use when creating new issues or comments through the `title-template` and `body-template` parameters, respectively.
 
 These templates can render data from the GitHub Actions run context using [mustache.js](https://github.com/janl/mustache.js/). For example, to render the run number, use the double-curly-brace mustache syntax: `{{runNumber}}`. See the attributes of the [`Context` class](https://github.com/actions/toolkit/blob/main/packages/github/src/context.ts) in actions/toolkit for available context variables that you can use. For documention on the environment variables used to populate the context, see the documentation for GitHub Actions' [default environment variables](https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables).
+
+In addition to the attributes of the `Context` class, this action provides two variables of its own:
+
+| Variable | Description |
+| --- | --- |
+| `refName` | Display name of the branch or tag whose build failed. For a pull request from a fork, this is prefixed with the fork's owner, e.g., `contributor:feature/foo`. |
+| `refUrl` | Full URL to that branch or tag. Percent-encoded, and based on the fork's repository for a pull request from a fork. |
+
+The two are resolved together from the event payload, because neither `GITHUB_REF` nor `GITHUB_REF_NAME` identifies the right branch for every event — a pull request reports `refs/pull/<number>/merge`, and `workflow_run` reports the repository's default branch rather than the branch that failed:
+
+| Event | Resolved from |
+| --- | --- |
+| `pull_request`, `pull_request_target` | `event.pull_request.head` |
+| `workflow_run` | `event.workflow_run.head_branch` and `head_repository` |
+| everything else | the `GITHUB_REF_NAME` environment variable |
+
+Use `{{refUrl}}` rather than interpolating `{{refName}}` into a URL yourself. `refName` is display text and is not URL-encoded, and for a pull request from a fork it names a branch that does not exist in your repository.
+
+> [!NOTE]
+> `refName` was previously called `refname` (no capitalization). `refname` is deprecated and will be removed in a future major version.Using `{{refname}}` logs a warning on the workflow run.
 
 If you need to inject data that isn't available from the context object within the Javascript, you can also use the GitHub Actions [expressions](https://docs.github.com/en/actions/learn-github-actions/expressions) and [workflow run context](https://docs.github.com/en/actions/learn-github-actions/contexts) to generate the strings that you pass to this action as a title or body template.
 

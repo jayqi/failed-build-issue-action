@@ -11,7 +11,7 @@ describe("Test run", () => {
     'github-token': "github_token_here",
     'label-name': "build failed",
     'title-template': "Failed build: {{workflow}}",
-    'body-template': "Build failed on {{refname}}.",
+    'body-template': "Build failed on {{refName}}.",
   };
   const booleanInputs = {
     'create-label': true,
@@ -38,7 +38,7 @@ describe("Test run", () => {
       "github_token_here",
       "build failed",
       "Failed build: {{workflow}}",
-      "Build failed on {{refname}}.",
+      "Build failed on {{refName}}.",
       true,
       false,
     );

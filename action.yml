@@ -16,11 +16,11 @@ inputs:
     description: "Mustache template to use for issue or comment body"
     required: true
     default: |
-      GitHub Actions workflow [{{workflow}} #{{runNumber}}](https://github.com/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runId}}) failed.
+      GitHub Actions workflow [{{workflow}} #{{runNumber}}]({{serverUrl}}/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runId}}) failed.
 
       Event: {{eventName}}
-      Branch: [{{refname}}](https://github.com/{{repo.owner}}/{{repo.repo}}/tree/{{refname}})
-      Commit: [{{sha}}](https://github.com/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
+      Branch: [{{refName}}]({{refUrl}})
+      Commit: [{{sha}}]({{serverUrl}}/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
 
       <sup><i>Created by [jayqi/failed-build-issue-action](https://github.com/jayqi/failed-build-issue-action)</i></sup>
   create-label:
