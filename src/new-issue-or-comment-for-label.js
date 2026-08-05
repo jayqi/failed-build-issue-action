@@ -69,7 +69,7 @@ let newIssueOrCommentForLabel = async function (
     core.debug("get_label_response:\n" + JSON.stringify(get_label_response))
   }
   catch (error) {
-    if (error.message === "Not Found") {
+    if (error.status === 404) {
       core.info("Label '" + labelName + "' not found.")
       if (createLabel) {
         core.info("Creating label '" + labelName + "'...")
