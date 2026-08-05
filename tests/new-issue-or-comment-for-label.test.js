@@ -45,7 +45,7 @@ const expectedListQuery = {
   state: "open",
   sort: "created",
   direction: "desc",
-  per_page: "1",
+  per_page: "10",
   page: "1",
 };
 
@@ -124,7 +124,8 @@ describe("Test newIssueOrCommentForLabel", () => {
     originalPayload = github.context.payload;
     originalServerUrl = github.context.serverUrl;
     originalRefName = process.env.GITHUB_REF_NAME;
-    // The deprecation tests assert on call count, so history must not leak in.
+    // The deprecation tests and the pull-request test assert on call count, so history must
+    // not leak in.
     core.warning.mockClear();
   });
 
@@ -240,7 +241,9 @@ describe("Test newIssueOrCommentForLabel", () => {
     });
   });
 
-  it('should create new issue if alwaysCreateNewIssue=true with existing issue', async () => {
+  // GitHub's REST API models every pull request as an issue, so listForRepo returns both.
+  // A labeled pull request newer than the labeled issue must not become the comment target.
+  it('should comment on the latest issue and ignore a newer labeled pull request', async () => {
     // Mock check if label exists
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
@@ -249,15 +252,93 @@ describe("Test newIssueOrCommentForLabel", () => {
         repo: testRepo,
         name: testLabel,
       });
-    // Mock search issues with label
+    // Mock search issues with label. Sorted created-desc, so both pull requests come first;
+    // only their `pull_request` key distinguishes them from an issue.
     const existingIssueNumber = 1;
+    const pullRequestNumber = 12;
+    const secondPullRequestNumber = 13;
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/issues`)
       .query(capture('listIssues'))
       .reply(200, [
         {
+          number: pullRequestNumber,
+          pull_request: {
+            url:
+              `https://api.github.com/repos/${testOwner}/${testRepo}/pulls/${pullRequestNumber}`,
+          },
+        },
+        {
+          number: secondPullRequestNumber,
+          pull_request: {
+            url:
+              `https://api.github.com/repos/${testOwner}/${testRepo}/pulls/${secondPullRequestNumber}`,
+          },
+        },
+        {
           number: existingIssueNumber,
+        },
+      ]);
+    // Mock create comment on existing issue
+    const testCommentHtmlUrl =
+      `https://github.com/${testOwner}/${testRepo}/issues/${existingIssueNumber}#issuecomment-1`;
+    nock("https://api.github.com")
+      .post(
+        `/repos/${testOwner}/${testRepo}/issues/${existingIssueNumber}/comments`,
+        capture('createComment'),
+      )
+      .reply(200,
+        {
+          id: 1,
+          html_url: testCommentHtmlUrl,
         }
+      );
+
+    const { issueNumber, created } = await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    expect(captured.listIssues).toEqual(expectedListQuery);
+    expect(captured.createComment).toEqual({ body: expectedBody });
+    expect(issueNumber).toBe(existingIssueNumber);
+    expect(created).toEqual({
+      id: 1,
+      html_url: testCommentHtmlUrl,
+    });
+    expect(core.warning).toHaveBeenCalledTimes(1);
+    expect(core.warning).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `Ignoring pull requests #${pullRequestNumber}, #${secondPullRequestNumber}`
+      )
+    );
+  });
+
+  it('should create a new issue when only pull requests carry the label', async () => {
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(200, {
+        owner: testOwner,
+        repo: testRepo,
+        name: testLabel,
+      });
+    // Mock search issues with label: every match is a pull request
+    const pullRequestNumber = 12;
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, [
+        {
+          number: pullRequestNumber,
+          pull_request: {
+            url:
+              `https://api.github.com/repos/${testOwner}/${testRepo}/pulls/${pullRequestNumber}`,
+          },
+        },
       ]);
     // Mock create new issue
     const newIssueNumber = 100;
@@ -274,8 +355,8 @@ describe("Test newIssueOrCommentForLabel", () => {
       testLabel,
       defaultTitleTemplate,
       defaultBodyTemplate,
-      false,
       true,
+      false,
     )
     expect(captured.listIssues).toEqual(expectedListQuery);
     expect(captured.createIssue).toEqual({
@@ -288,9 +369,15 @@ describe("Test newIssueOrCommentForLabel", () => {
       number: newIssueNumber,
       html_url: testIssueHtmlUrl,
     });
+    expect(core.warning).toHaveBeenCalledWith(
+      expect.stringContaining(`Ignoring pull request #${pullRequestNumber}`)
+    );
   });
 
-  it('should create new issue if alwaysCreateNewIssue=true and no existing issue', async () => {
+  // No list interceptor, deliberately: with always-create-new-issue set there is nothing to
+  // search for. nock.disableNetConnect() turns an unwanted request into a loud failure, and
+  // the captured.listIssues assertion states the intent for a reader.
+  it('should create new issue without searching if alwaysCreateNewIssue=true', async () => {
     // Mock check if label exists
     nock("https://api.github.com")
       .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
@@ -299,11 +386,6 @@ describe("Test newIssueOrCommentForLabel", () => {
         repo: testRepo,
         name: testLabel,
       });
-    // Mock search issues with label
-    nock("https://api.github.com")
-      .get(`/repos/${testOwner}/${testRepo}/issues`)
-      .query(capture('listIssues'))
-      .reply(200, []);
     // Mock create new issue
     const newIssueNumber = 100;
     const testIssueHtmlUrl = `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`;
@@ -322,7 +404,7 @@ describe("Test newIssueOrCommentForLabel", () => {
       false,
       true,
     )
-    expect(captured.listIssues).toEqual(expectedListQuery);
+    expect(captured.listIssues).toBeUndefined();
     expect(captured.createIssue).toEqual({
       title: expectedTitle,
       body: expectedBody,
