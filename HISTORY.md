@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Renamed the `refname` template variable to `refName`, matching the camelCase of the other template variables. `refname` still works but is deprecated and now logs a warning when a template uses it; it will be removed in a future major version.
+- Added a `refUrl` template variable holding a complete, percent-encoded URL to the branch or tag. The default `body-template` now uses it for the branch link. Prefer it over building a URL out of `refName` yourself: `refName` is display text, and for a pull request from a fork it is prefixed with the owner, e.g. `contributor:feature/foo`, which is not a valid URL path.
+- Fixed `refName` naming the wrong branch for `pull_request` and `workflow_run` events, which had made the branch link 404 or point at the default branch rather than the branch that failed.
+- Fixed `refName` truncating branch and tag names containing slashes, so a branch like `feature/foo` no longer becomes `foo` with a broken link.
+- Fixed the default `body-template` hardcoding `https://github.com`, which generated links to the wrong host on GitHub Enterprise Server. It now uses `{{serverUrl}}`. Rendered output on github.com is unchanged.
 - Fixed title and body templates HTML-escaping rendered values, which corrupted issue titles and code spans in issue and comment bodies.
 - Removed unused dependency on `dist` package.
 
