@@ -12,49 +12,58 @@ const render = (template, view) => Mustache.render(template, view, {}, { escape:
 // A pull request carries a `pull_request` key; an issue omits it.
 const isPullRequest = (item) => item.pull_request !== undefined;
 
+// Deprecated alias for refName
+const deprecatedRefname = (refName) => {
+  let warned = false;
+  return () => {
+    if (!warned) {
+      warned = true;
+      core.warning(
+        "The 'refname' template variable is deprecated and will be removed in a " +
+        "future major version. Use 'refName' instead, or 'refUrl' for a branch link."
+      );
+    }
+    return refName;
+  };
+};
+
+// A view built for Mustache, kept separate from the run context it reads. Returning a new
+// object rather than assigning onto github.context, which is a shared singleton.
+// repo and issue are getters inherited from the Context class rather than stored values, so
+// spreading alone would silently drop them and blank out {{repo.owner}}; reading them here
+// materializes each into plain data.
+const templateView = (context, ref) => ({
+  ...context,
+  repo: context.repo,
+  issue: context.issue,
+  ...ref,
+  refname: deprecatedRefname(ref.refName),
+});
+
 let newIssueOrCommentForLabel = async function (
   githubToken, labelName, titleTemplate, bodyTemplate, createLabel, alwaysCreateNewIssue
 ) {
   // octokit client
   // https://octokit.github.io/rest.js/
   const octokit = github.getOctokit(githubToken);
-  const ref = resolveRef(github.context, process.env)
-  const context = Object.assign(github.context, ref)
-
-  // Deprecated alias for refName; remove at the next major version. Mustache renders
-  // an unknown key as an empty string rather than erroring, so simply dropping it
-  // would turn "Branch: [main](...)" into "Branch: []()" with no diagnostic.
-  //
-  // Non-enumerable is load-bearing: core.debug below JSON.stringifies this object,
-  // and an enumerable property would be read there and warn on every run.
-  let warnedRefname = false
-  Object.defineProperty(context, 'refname', {
-    get() {
-      if (!warnedRefname) {
-        warnedRefname = true
-        core.warning(
-          "The 'refname' template variable is deprecated and will be removed in a " +
-          "future major version. Use 'refName' instead, or 'refUrl' for a branch link."
-        )
-      }
-      return ref.refName
-    },
-    enumerable: false,
-    configurable: true,
-  })
+  const context = github.context
+  const ref = resolveRef(context, process.env)
+  const view = templateView(context, ref)
+  // The API wants owner/repo; the templates want the whole view. Two separate needs.
+  const { owner, repo } = context.repo
 
   core.debug("labelName: " + labelName)
   core.debug("titleTemplate: " + titleTemplate)
   core.debug("bodyTemplate: " + bodyTemplate)
   core.debug("createLabel: " + String(createLabel))
   core.debug("alwaysCreateNewIssue: " + String(alwaysCreateNewIssue))
-  core.debug("context: " + JSON.stringify(context))
+  core.debug("view: " + JSON.stringify(view))
 
   core.info("Checking if label '" + labelName + "' exists...")
   try {
     const get_label_response = await octokit.rest.issues.getLabel({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner,
+      repo,
       name: labelName,
     });
     core.debug("get_label_response:\n" + JSON.stringify(get_label_response))
@@ -65,8 +74,8 @@ let newIssueOrCommentForLabel = async function (
       if (createLabel) {
         core.info("Creating label '" + labelName + "'...")
         const create_label_response = await octokit.rest.issues.createLabel({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
+          owner,
+          repo,
           name: labelName,
         });
         core.debug("create_label_response:\n" + JSON.stringify(create_label_response))
@@ -87,8 +96,8 @@ let newIssueOrCommentForLabel = async function (
     // requests newer than the newest labeled issue. If it ever is not, the action opens a
     // duplicate issue rather than commenting, which is the benign direction to fail.
     const { data: labeledItems } = await octokit.rest.issues.listForRepo({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner,
+      repo,
       labels: [labelName],
       state: 'open',
       sort: 'created',
@@ -120,10 +129,10 @@ let newIssueOrCommentForLabel = async function (
   if (latestIssue === undefined) {
     core.info("Creating new issue...")
     create_issue_or_comment_response = await octokit.rest.issues.create({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      title: render(titleTemplate, context),
-      body: render(bodyTemplate, context),
+      owner,
+      repo,
+      title: render(titleTemplate, view),
+      body: render(bodyTemplate, view),
       labels: [labelName],
     });
     issueNumber = create_issue_or_comment_response.data.number;
@@ -131,10 +140,10 @@ let newIssueOrCommentForLabel = async function (
     issueNumber = latestIssue.number;
     core.info("Found issue #" + String(issueNumber) + ". Creating new comment...")
     create_issue_or_comment_response = await octokit.rest.issues.createComment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner,
+      repo,
       issue_number: issueNumber,
-      body: render(bodyTemplate, context),
+      body: render(bodyTemplate, view),
     });
   }
 
@@ -146,3 +155,5 @@ let newIssueOrCommentForLabel = async function (
 };
 
 module.exports = newIssueOrCommentForLabel;
+// Exported for unit tests; not part of the action's interface.
+module.exports.templateView = templateView;
