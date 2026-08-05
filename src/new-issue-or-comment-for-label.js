@@ -8,6 +8,10 @@ const resolveRef = require('./resolve-ref');
 // beyond GitHub's own server-side sanitization of issue bodies.
 const render = (template, view) => Mustache.render(template, view, {}, { escape: (v) => v });
 
+// GitHub's REST API models every pull request as an issue, so issues.listForRepo returns both.
+// A pull request carries a `pull_request` key; an issue omits it.
+const isPullRequest = (item) => item.pull_request !== undefined;
+
 let newIssueOrCommentForLabel = async function (
   githubToken, labelName, titleTemplate, bodyTemplate, createLabel, alwaysCreateNewIssue
 ) {
@@ -74,22 +78,46 @@ let newIssueOrCommentForLabel = async function (
     }
   }
 
-  core.info("Finding latest open issue with label '" + labelName + "'...")
-  const { data: issues_with_label } = await octokit.rest.issues.listForRepo({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    labels: [labelName],
-    state: 'open',
-    sort: 'created',
-    direction: 'desc',
-    per_page: 1,
-    page: 1,
-  });
+  let latestIssue;
+  if (alwaysCreateNewIssue) {
+    core.info("always-create-new-issue set to true")
+  } else {
+    core.info("Finding latest open issue with label '" + labelName + "'...")
+    // A small page suffices: it only needs to be larger than the number of labeled pull
+    // requests newer than the newest labeled issue. If it ever is not, the action opens a
+    // duplicate issue rather than commenting, which is the benign direction to fail.
+    const { data: labeledItems } = await octokit.rest.issues.listForRepo({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      labels: [labelName],
+      state: 'open',
+      sort: 'created',
+      direction: 'desc',
+      per_page: 10,
+      page: 1,
+    });
+
+    // The label is meant for the issues this action creates, so a pull request wearing it is
+    // a misconfiguration. Warn once, naming all of them, rather than once per pull request.
+    const pullRequests = labeledItems.filter(isPullRequest)
+    if (pullRequests.length > 0) {
+      const numbers = pullRequests.map((pullRequest) => "#" + pullRequest.number).join(", ")
+      core.warning(
+        `Ignoring pull request${pullRequests.length === 1 ? "" : "s"} ${numbers} with the ` +
+        `'${labelName}' label. This action only comments on issues; the label is intended ` +
+        "for the issues it creates."
+      )
+    }
+
+    latestIssue = labeledItems.find((item) => !isPullRequest(item))
+    if (latestIssue === undefined) {
+      core.info("No open issue found.")
+    }
+  }
 
   let issueNumber;
   let create_issue_or_comment_response;
-  if (alwaysCreateNewIssue || issues_with_label.length === 0) {
-    core.info(alwaysCreateNewIssue ? "always-create-new-issue set to true" : "No open issue found.")
+  if (latestIssue === undefined) {
     core.info("Creating new issue...")
     create_issue_or_comment_response = await octokit.rest.issues.create({
       owner: context.repo.owner,
@@ -100,7 +128,7 @@ let newIssueOrCommentForLabel = async function (
     });
     issueNumber = create_issue_or_comment_response.data.number;
   } else {
-    issueNumber = issues_with_label[0].number;
+    issueNumber = latestIssue.number;
     core.info("Found issue #" + String(issueNumber) + ". Creating new comment...")
     create_issue_or_comment_response = await octokit.rest.issues.createComment({
       owner: context.repo.owner,
