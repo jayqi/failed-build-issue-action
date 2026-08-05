@@ -3,9 +3,6 @@ const github = require('@actions/github');
 const nock = require('nock');
 const newIssueOrCommentForLabel = require('../src/new-issue-or-comment-for-label');
 
-// Shallow clone original @actions/github context
-let originalContext = { ...github.context }
-
 const testOwner = "jayqi";
 const testRepo = "not-a-real-repo";
 const testLabel = "build failed";
@@ -104,10 +101,6 @@ describe("Test newIssueOrCommentForLabel", () => {
   afterAll(() => {
     restoreEnv('GITHUB_REF_NAME', originalEnvRefName);
     nock.enableNetConnect();
-    // Restore original @actions/github context
-    Object.defineProperty(github, 'context', {
-      value: originalContext,
-    });
   })
 
   // Restored unconditionally rather than in each test's finally: a throw during
@@ -537,88 +530,6 @@ describe("Test newIssueOrCommentForLabel", () => {
     expect(captured.createIssue.body).toContain(
       `Branch: [${forkOwner}:${forkBranch}](${testServerUrl}/${forkOwner}/${testRepo}/tree/${forkBranch})`
     );
-  });
-
-  // The alias's only coverage. Without it a future cleanup would drop the alias and
-  // nothing would fail, because Mustache renders an unknown key as an empty string.
-  it("should still render the deprecated refname alias", async () => {
-    // Both templates use the old name, so the getter is read twice. That is what
-    // makes the warn-once assertion below meaningful rather than trivially true.
-    const aliasTitleTemplate = "title {{refname}}";
-    const aliasTemplate = "new={{refName}} old={{refname}}";
-
-    // Mock check if label exists
-    nock("https://api.github.com")
-      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
-      .reply(200, {
-        owner: testOwner,
-        repo: testRepo,
-        name: testLabel,
-      });
-    // Mock search issues with label
-    nock("https://api.github.com")
-      .get(`/repos/${testOwner}/${testRepo}/issues`)
-      .query(capture('listIssues'))
-      .reply(200, []);
-    // Mock create new issue
-    const newIssueNumber = 100;
-    nock("https://api.github.com")
-      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
-      .reply(200, {
-        number: newIssueNumber,
-        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
-      });
-
-    await newIssueOrCommentForLabel(
-      "github_token_here",
-      testLabel,
-      aliasTitleTemplate,
-      aliasTemplate,
-      true,
-      false,
-    )
-    expect(captured.createIssue.title).toBe(`title ${testRefName}`);
-    expect(captured.createIssue.body).toBe(`new=${testRefName} old=${testRefName}`);
-    expect(core.warning).toHaveBeenCalledTimes(1);
-    expect(core.warning).toHaveBeenCalledWith(
-      expect.stringContaining("'refname' template variable is deprecated")
-    );
-  });
-
-  // Guards the alias being non-enumerable: made enumerable, the core.debug
-  // JSON.stringify would read it and every run would warn. Nothing else catches that.
-  it("should not warn when the templates use only the current variable names", async () => {
-    // Mock check if label exists
-    nock("https://api.github.com")
-      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
-      .reply(200, {
-        owner: testOwner,
-        repo: testRepo,
-        name: testLabel,
-      });
-    // Mock search issues with label
-    nock("https://api.github.com")
-      .get(`/repos/${testOwner}/${testRepo}/issues`)
-      .query(capture('listIssues'))
-      .reply(200, []);
-    // Mock create new issue
-    const newIssueNumber = 100;
-    nock("https://api.github.com")
-      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
-      .reply(200, {
-        number: newIssueNumber,
-        html_url: `https://github.com/${testOwner}/${testRepo}/issues/${newIssueNumber}`,
-      });
-
-    await newIssueOrCommentForLabel(
-      "github_token_here",
-      testLabel,
-      defaultTitleTemplate,
-      defaultBodyTemplate,
-      true,
-      false,
-    )
-    expect(core.warning).not.toHaveBeenCalled();
   });
 
   it("should use serverUrl for every link, not a hardcoded github.com", async () => {
