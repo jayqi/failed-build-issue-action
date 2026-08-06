@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed action to use [Node 24 runtime](https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/).
 - Changed the `github-token` input to default to `${{ github.token }}`, the token GitHub Actions automatically provides to every job. Basic usage now needs no `with:` block at all. Passing `github-token` explicitly still works and is unchanged, and is still how you use a different account, such as a GitHub App or a personal access token.
 - Renamed the `refname` template variable to `refName`, matching the camelCase of the other template variables. `refname` still works but is deprecated and now logs a warning when a template uses it; it will be removed in a future major version.
 - Added a `refUrl` template variable holding a complete, percent-encoded URL to the branch or tag. The default `body-template` now uses it for the branch link. Prefer it over building a URL out of `refName` yourself: `refName` is display text, and for a pull request from a fork it is prefixed with the owner, e.g., `contributor:feature/foo`, which is not a valid URL path.
