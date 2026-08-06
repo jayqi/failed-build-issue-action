@@ -1,7 +1,6 @@
 {
   "name": "failed-build-issue-action",
   "description": "Creates or updates latest open issue with a 'build failed' label.",
-  "main": "dist/index.js",
   "scripts": {
     "start": "ncc run ./src/index.js",
     "build": "ncc build ./src/index.js",
