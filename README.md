@@ -11,8 +11,6 @@ This action makes it easy to notify maintainers of a failed GitHub Actions workf
 
 ```yml
 - uses: jayqi/failed-build-issue-action@v1
-  with:
-    github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 For all options, see [`action.yml`](./action.yml)
@@ -45,8 +43,6 @@ jobs:
       - name: Notify failed build
         uses: jayqi/failed-build-issue-action@v1
         if: failure() && github.event.pull_request == null
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Explanation
@@ -108,8 +104,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: jayqi/failed-build-issue-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Explanation
@@ -201,6 +195,4 @@ steps:
 
   - name: Run failed-build-issue-action
     uses: ./
-    with:
-      github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
