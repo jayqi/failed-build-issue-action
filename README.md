@@ -126,7 +126,7 @@ Note that we don't need to use `actions/checkout` in this job because it doesn't
 
 **Events** in GitHub Actions refer to things that can cause a workflow to run, such as a pushing a commit to a branch or pushing a commit to a pull request.
 
-You may not want `failed-build-issue-action` to not run for _all_ of the same event triggers as the workflow itself. For instance, our examples above run on (1) commits to pull requests, (2) pushes to the main branch, and (3) on a weekly schedule on the main branch. You probably don't want to be notified for every test failure for pull requests, since in-development work is expected to fail more often. You can easily use the `github.event` payload to determine whether a particular type of event is running. For example:
+You may not want `failed-build-issue-action` to run for _all_ of the same event triggers as the workflow itself. For instance, our examples above run on (1) commits to pull requests, (2) pushes to the main branch, and (3) on a weekly schedule on the main branch. You probably don't want to be notified for every test failure for pull requests, since in-development work is expected to fail more often. You can easily use the `github.event` payload to determine whether a particular type of event is running. For example:
 
 - `if: github.event.pull_request` will be true if it's a pull request
 - `if: github.event.pull_request == null` will be true if it's _not_ a pull request
@@ -163,7 +163,7 @@ If you need to inject data that isn't available from the context object within t
 
 ## Comments vs. new issues
 
-The default behavior of appending to the latest open `"build failed"` issue assumes that if the issue is still open, it is unaddressed and most likely the cause of the addiional failure.
+The default behavior of appending to the latest open `"build failed"` issue assumes that if the issue is still open, it is unaddressed and most likely the cause of the additional failure.
 
 If you would like to always create a new issue, set the parameter `always-create-new-issue` to `true`.
 
