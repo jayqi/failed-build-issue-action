@@ -39,7 +39,7 @@ outputs:
   html-url:
     description: "URL to new issue or comment on GitHub.com web app"
 runs:
-  using: "node20"
+  using: "node24"
   main: "dist/index.js"
 branding:
   icon: "alert-circle"
