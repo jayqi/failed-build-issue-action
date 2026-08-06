@@ -2,19 +2,20 @@ name: "Failed Build Issue"
 description: "Create or comment on an issue when your GitHub Actions workflow fails."
 inputs:
   github-token:
-    description: "GitHub token with repository access, i.e., secrets.GITHUB_TOKEN"
-    required: true
+    description: "GitHub token with repository access. Defaults to the workflow's automatic GITHUB_TOKEN."
+    required: false
+    default: ${{ github.token }}
   label-name:
     description: "Name of label that this action interacts with"
-    required: true
+    required: false
     default: "build failed"
   title-template:
     description: "Mustache template to use as title when creating a new issue"
-    required: true
+    required: false
     default: "Failed build: {{workflow}}"
   body-template:
     description: "Mustache template to use for issue or comment body"
-    required: true
+    required: false
     default: |
       GitHub Actions workflow [{{workflow}} #{{runNumber}}]({{serverUrl}}/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runId}}) failed.
 
@@ -25,11 +26,11 @@ inputs:
       <sup><i>Created by [jayqi/failed-build-issue-action](https://github.com/jayqi/failed-build-issue-action)</i></sup>
   create-label:
     description: "Whether to create a new label for 'label-name' if it doesn't already exist."
-    required: true
+    required: false
     default: true
   always-create-new-issue:
     description: "If true, will always create a new issue, even if one matching 'label-name' is already open."
-    required: true
+    required: false
     default: false
 # outputs will be available to future steps
 outputs:

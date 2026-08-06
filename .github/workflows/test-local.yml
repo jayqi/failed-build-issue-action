@@ -19,5 +19,3 @@ jobs:
 
     - name: Run action from local source
       uses: ./
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
