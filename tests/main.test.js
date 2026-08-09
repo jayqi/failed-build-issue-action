@@ -2,8 +2,16 @@ jest.mock('@actions/core');
 jest.mock('../src/new-issue-or-comment-for-label');
 
 const core = require('@actions/core');
+const fs = require('fs');
 const newIssueOrCommentForLabel = require('../src/new-issue-or-comment-for-label');
+const path = require('path');
 const { run } = require('../src/main');
+const YAML = require('yaml');
+
+const action = YAML.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'action.yml'), 'utf8'),
+);
+const declaredInputs = Object.keys(action.inputs).sort();
 
 describe("Test run", () => {
   const testHtmlUrl = "https://github.com/jayqi/not-a-real-repo/issues/100";
@@ -17,11 +25,23 @@ describe("Test run", () => {
     'create-label': true,
     'always-create-new-issue': false,
   };
+  let requestedInputs;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    core.getInput.mockImplementation((name) => inputs[name]);
-    core.getBooleanInput.mockImplementation((name) => booleanInputs[name]);
+    requestedInputs = new Set();
+    core.getInput.mockImplementation((name) => {
+      requestedInputs.add(name);
+      return inputs[name];
+    });
+    core.getBooleanInput.mockImplementation((name) => {
+      requestedInputs.add(name);
+      return booleanInputs[name];
+    });
+  });
+
+  afterEach(() => {
+    expect([...requestedInputs].sort()).toEqual(declaredInputs);
   });
 
   it("should pass inputs through and set outputs", async () => {

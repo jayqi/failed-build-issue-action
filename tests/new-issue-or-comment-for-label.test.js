@@ -1,7 +1,14 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
+const fs = require('fs');
 const nock = require('nock');
+const path = require('path');
+const YAML = require('yaml');
 const newIssueOrCommentForLabel = require('../src/new-issue-or-comment-for-label');
+
+const action = YAML.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'action.yml'), 'utf8'),
+);
 
 const testOwner = "jayqi";
 const testRepo = "not-a-real-repo";
@@ -14,16 +21,8 @@ const testRefName = "some-ref";
 const testServerUrl = "https://github.com";
 const testSha = "1234567890123456789012345678901234567890";
 
-// Keep these in sync with the defaults in action.yml
-const defaultTitleTemplate = "Failed build: {{workflow}}";
-const defaultBodyTemplate = `GitHub Actions workflow [{{workflow}} #{{runNumber}}]({{serverUrl}}/{{repo.owner}}/{{repo.repo}}/actions/runs/{{runId}}) failed.
-
-Event: {{eventName}}
-Branch: [{{refName}}]({{refUrl}})
-Commit: [{{sha}}]({{serverUrl}}/{{repo.owner}}/{{repo.repo}}/commit/{{sha}})
-
-<sup><i>Created by [jayqi/failed-build-issue-action](https://github.com/jayqi/failed-build-issue-action)</i></sup>
-`;
+const defaultTitleTemplate = action.inputs['title-template'].default;
+const defaultBodyTemplate = action.inputs['body-template'].default;
 
 // What the templates above must render to, given the context mocked in beforeAll
 const expectedTitle = `Failed build: ${testWorkflow}`;
