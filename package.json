@@ -2,7 +2,6 @@
   "name": "failed-build-issue-action",
   "description": "Creates or updates latest open issue with a 'build failed' label.",
   "scripts": {
-    "start": "ncc run ./src/index.js",
     "build": "ncc build ./src/index.js",
     "lint": "eslint ./src && eslint ./tests",
     "test": "jest --coverage"
