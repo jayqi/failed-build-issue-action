@@ -4,6 +4,7 @@ jest.mock('../src/new-issue-or-comment-for-label');
 const core = require('@actions/core');
 const newIssueOrCommentForLabel = require('../src/new-issue-or-comment-for-label');
 const { run } = require('../src/main');
+const { declaredInputs } = require('./action-metadata');
 
 describe("Test run", () => {
   const testHtmlUrl = "https://github.com/jayqi/not-a-real-repo/issues/100";
@@ -68,5 +69,22 @@ describe("Test run", () => {
 
     expect(core.setFailed).toHaveBeenCalledWith("Something went wrong");
     expect(core.setOutput).not.toHaveBeenCalled();
+  });
+
+  it("reads exactly the inputs declared in action.yml", async () => {
+    newIssueOrCommentForLabel.mockResolvedValue({
+      issueNumber: 1,
+      created: { html_url: testHtmlUrl },
+    });
+
+    await run();
+
+    // Catches both directions of drift: main.js reading an undeclared input,
+    // or action.yml declaring one that nothing reads.
+    const requested = [
+      ...core.getInput.mock.calls,
+      ...core.getBooleanInput.mock.calls,
+    ].map(([name]) => name);
+    expect([...new Set(requested)].sort()).toEqual(declaredInputs);
   });
 });
