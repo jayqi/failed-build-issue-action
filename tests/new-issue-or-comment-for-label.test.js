@@ -1,14 +1,8 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
-const fs = require('fs');
 const nock = require('nock');
-const path = require('path');
-const YAML = require('yaml');
 const newIssueOrCommentForLabel = require('../src/new-issue-or-comment-for-label');
-
-const action = YAML.parse(
-  fs.readFileSync(path.join(__dirname, '..', 'action.yml'), 'utf8'),
-);
+const { actionYml } = require('./action-metadata');
 
 const testOwner = "jayqi";
 const testRepo = "not-a-real-repo";
@@ -21,8 +15,8 @@ const testRefName = "some-ref";
 const testServerUrl = "https://github.com";
 const testSha = "1234567890123456789012345678901234567890";
 
-const defaultTitleTemplate = action.inputs['title-template'].default;
-const defaultBodyTemplate = action.inputs['body-template'].default;
+const defaultTitleTemplate = actionYml.inputs['title-template'].default;
+const defaultBodyTemplate = actionYml.inputs['body-template'].default;
 
 // What the templates above must render to, given the context mocked in beforeAll
 const expectedTitle = `Failed build: ${testWorkflow}`;

@@ -2,16 +2,9 @@ jest.mock('@actions/core');
 jest.mock('../src/new-issue-or-comment-for-label');
 
 const core = require('@actions/core');
-const fs = require('fs');
 const newIssueOrCommentForLabel = require('../src/new-issue-or-comment-for-label');
-const path = require('path');
 const { run } = require('../src/main');
-const YAML = require('yaml');
-
-const action = YAML.parse(
-  fs.readFileSync(path.join(__dirname, '..', 'action.yml'), 'utf8'),
-);
-const declaredInputs = Object.keys(action.inputs).sort();
+const { declaredInputs } = require('./action-metadata');
 
 describe("Test run", () => {
   const testHtmlUrl = "https://github.com/jayqi/not-a-real-repo/issues/100";
@@ -25,23 +18,11 @@ describe("Test run", () => {
     'create-label': true,
     'always-create-new-issue': false,
   };
-  let requestedInputs;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    requestedInputs = new Set();
-    core.getInput.mockImplementation((name) => {
-      requestedInputs.add(name);
-      return inputs[name];
-    });
-    core.getBooleanInput.mockImplementation((name) => {
-      requestedInputs.add(name);
-      return booleanInputs[name];
-    });
-  });
-
-  afterEach(() => {
-    expect([...requestedInputs].sort()).toEqual(declaredInputs);
+    core.getInput.mockImplementation((name) => inputs[name]);
+    core.getBooleanInput.mockImplementation((name) => booleanInputs[name]);
   });
 
   it("should pass inputs through and set outputs", async () => {
@@ -88,5 +69,22 @@ describe("Test run", () => {
 
     expect(core.setFailed).toHaveBeenCalledWith("Something went wrong");
     expect(core.setOutput).not.toHaveBeenCalled();
+  });
+
+  it("reads exactly the inputs declared in action.yml", async () => {
+    newIssueOrCommentForLabel.mockResolvedValue({
+      issueNumber: 1,
+      created: { html_url: testHtmlUrl },
+    });
+
+    await run();
+
+    // Catches both directions of drift: main.js reading an undeclared input,
+    // or action.yml declaring one that nothing reads.
+    const requested = [
+      ...core.getInput.mock.calls,
+      ...core.getBooleanInput.mock.calls,
+    ].map(([name]) => name);
+    expect([...new Set(requested)].sort()).toEqual(declaredInputs);
   });
 });
