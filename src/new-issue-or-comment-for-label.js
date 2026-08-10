@@ -80,7 +80,7 @@ let newIssueOrCommentForLabel = async function (
         });
         core.debug("create_label_response:\n" + JSON.stringify(create_label_response))
       } else {
-        throw new Error(`Label "${labelName}" not found and createLabel = false.`);
+        throw new Error(`Label "${labelName}" not found and createLabel = false.`, { cause: error });
       }
     } else {
       throw error

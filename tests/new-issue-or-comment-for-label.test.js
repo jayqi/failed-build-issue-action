@@ -422,7 +422,7 @@ describe("Test newIssueOrCommentForLabel", () => {
       )
     )
       .rejects
-      .toThrow(new Error(`Label "${testLabel}" not found and createLabel = false.`));
+      .toThrow(`Label "${testLabel}" not found and createLabel = false.`);
   });
 
   it("should create new label if it's not found and createLabel=true", async () => {
