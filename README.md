@@ -15,6 +15,7 @@ For options, see [`action.yml`](./action.yml)
 This action creates and comments on issues, so the `GITHUB_TOKEN` needs `issues: write` permission. The recommended way to grant it is with the [`permissions` keyword](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#permissions) on the job that runs the action, which keeps the token scoped to only what's needed:
 
 ```yml
+# on the job that runs the action:
 permissions:
   issues: write
 ```
