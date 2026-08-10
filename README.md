@@ -6,16 +6,21 @@ This action makes it easy to notify maintainers of a failed GitHub Actions workf
 
 ## Basic usage
 
-> [!IMPORTANT]
-> This action requires "Read and write permissions". You can set the default permissions granted to GitHub Actions workflows by going to your repository's **Settings** > **Actions** > **General** and looking under the **Workflow permissions** section. You can also set permissions at the individual workflow level. Learn more from [GitHub's documentation about workflow permissions](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token).
-
 ```yml
 - uses: jayqi/failed-build-issue-action@v1
 ```
 
-For all options, see [`action.yml`](./action.yml)
+For options, see [`action.yml`](./action.yml)
 
-See the two examples below for more realistic usage in full workflows.
+This action creates and comments on issues, so the `GITHUB_TOKEN` needs `issues: write` permission. The recommended way to grant it is with the [`permissions` keyword](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#permissions) on the job that runs the action, which keeps the token scoped to only what's needed:
+
+```yml
+# on the job that runs the action:
+permissions:
+  issues: write
+```
+
+See the two examples below for realistic usage in full workflows.
 
 ## Example 1: As a step
 
@@ -35,6 +40,9 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - name: Run tests
@@ -59,6 +67,16 @@ There are two conditions here that we combine with a `&&` (and) operator:
 2. `github.event.pull_request == null` — In this example, we exclude pull requests because they represent in-development work where failures are more expected. See ["Conditioning on event triggers"](#conditioning-on-event-triggers) below for additional discussion.
 
 You'll want to make sure the `failed-build-issue-action` step is after any step that you might want to trigger it.
+
+We also set job-level `permissions` so the `GITHUB_TOKEN` has the access this action needs.
+
+```yml
+permissions:
+  contents: read
+  issues: write
+```
+
+Declaring `permissions` on a job overrides the defaults, setting any scope you don't list to `none`. This job needs `issues: write` for the action and `contents: read` for `actions/checkout`, so we grant both. (Normally, `contents: read` is available by default when you don't declare anything.)
 
 ## Example 2: As a job
 
@@ -102,6 +120,8 @@ jobs:
     needs: [code-quality, tests]
     if: failure() && github.event.pull_request == null
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: jayqi/failed-build-issue-action@v1
 ```
@@ -120,7 +140,14 @@ We also use the `if` keyword to condition the `notify` job on one of its prerequ
 if: failure() && github.event.pull_request == null
 ```
 
-Note that we don't need to use `actions/checkout` in this job because it doesn't depend on any files in our repository.
+Note that we don't need to use `actions/checkout` in this job because it doesn't depend on any files in our repository. This also means the `notify` job needs only `issues: write` permission and no `contents: read`, so we scope its `GITHUB_TOKEN` to just that.
+
+```yml
+permissions:
+  issues: write
+```
+
+Because these `permissions` are declared on the `notify` job alone, the other jobs keep their default permissions.
 
 ## Conditioning on event triggers
 
