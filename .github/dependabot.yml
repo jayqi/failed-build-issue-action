@@ -9,3 +9,25 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    # Dev dependencies arrive as one PR. Every npm update rewrites package-lock.json,
+    # so ungrouped updates conflict with each other and each merge forces the rest to
+    # rebase. Production dependencies stay ungrouped: they reach dist/index.js, so they
+    # need individual review and a rebuilt bundle.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+    # This action's source is CommonJS. @actions/core became ESM-only in v3.0.0 and
+    # @actions/github in v9.0.0 — their exports maps declare an "import" condition and
+    # no "require", so require() cannot resolve them at all and the suite fails with
+    # "Cannot find module '@actions/github'". Taking either major means migrating the
+    # whole source and test suite to ESM.
+    #
+    # Note the wall is only at those versions: @actions/core v2 and @actions/github
+    # v6-v8 are still CommonJS. They are ignored here because we are not pursuing
+    # toolkit upgrades, not because they cannot work. Minor and patch updates are
+    # unaffected, so security fixes on the current majors still come through.
+    ignore:
+      - dependency-name: "@actions/core"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@actions/github"
+        update-types: ["version-update:semver-major"]
