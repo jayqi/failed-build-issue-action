@@ -23,5 +23,7 @@ jobs:
         run: |
           TAG="${{ github.event.release.tag_name }}"
           MAJOR="${TAG%%.*}"          # v1.2.3 -> v1
-          git tag -f "$MAJOR" "$TAG"
+          # Dereference to the commit so the major tag never becomes a
+          # tag-of-a-tag when the release tag is annotated.
+          git tag -f "$MAJOR" "$TAG^{commit}"
           git push origin -f "refs/tags/$MAJOR"
