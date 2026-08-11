@@ -1,11 +1,14 @@
-name: "test-local"
+name: "test-integration"
 on:
   workflow_dispatch:
 
 jobs:
   tests:
-    name: Test action from local source
+    name: Integration test with GitHub
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
     - uses: actions/checkout@v7
 
@@ -24,4 +27,17 @@ jobs:
         npm run build
 
     - name: Run action from local source
+      id: run-action
       uses: ./
+      with:
+        label-name: "integration test"
+
+    - name: Verify action commented on evergreen issue
+      env:
+        ISSUE_NUMBER: ${{ steps.run-action.outputs.issue-number }}
+        HTML_URL: ${{ steps.run-action.outputs.html-url }}
+      run: |
+        echo "issue-number: $ISSUE_NUMBER"
+        echo "html-url: $HTML_URL"
+        test "$ISSUE_NUMBER" = "105"
+        case "$HTML_URL" in */issues/105#issuecomment-*) ;; *) exit 1 ;; esac
