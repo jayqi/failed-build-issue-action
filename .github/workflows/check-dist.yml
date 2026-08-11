@@ -1,0 +1,44 @@
+# Rebuilds the bundle and fails if the committed dist/ is out of date.
+# Because dist/ is committed to the repo, it must be regenerated whenever
+# src/ or dependencies change.
+name: "check-dist"
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  check-dist:
+    name: Check dist/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Rebuild dist/
+        run: |
+          rm -rf dist/
+          npm run build
+
+      # git diff only sees tracked files, so it passes when the build starts
+      # emitting a new (untracked) file or stops emitting a committed one.
+      # Staging with `git add -A` first makes both cases visible to the diff.
+      - name: Compare committed dist/ to rebuild
+        run: |
+          git add -A dist/
+          if ! git diff --cached --exit-code dist/; then
+            echo "::error::dist/ is out of date. Run 'npm run build' and commit the result."
+            exit 1
+          fi
