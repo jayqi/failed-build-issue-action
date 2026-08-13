@@ -71,6 +71,30 @@ describe("Test run", () => {
     expect(core.setOutput).not.toHaveBeenCalled();
   });
 
+  it("logs the stack instead of an empty object for plain errors", async () => {
+    newIssueOrCommentForLabel.mockRejectedValue(new Error("Something went wrong"));
+
+    await run();
+
+    expect(core.debug).toHaveBeenCalledWith(
+      expect.stringContaining("Error:\nError: Something went wrong"),
+    );
+  });
+
+  it("includes status and response data for Octokit RequestErrors", async () => {
+    const octokitError = Object.assign(new Error("Request failed"), {
+      status: 500,
+      response: { data: { message: "boom" } },
+    });
+    newIssueOrCommentForLabel.mockRejectedValue(octokitError);
+
+    await run();
+
+    const debugCall = core.debug.mock.calls[0][0];
+    expect(debugCall).toContain("status: 500");
+    expect(debugCall).toContain('"message":"boom"');
+  });
+
   it("reads exactly the inputs declared in action.yml", async () => {
     newIssueOrCommentForLabel.mockResolvedValue({
       issueNumber: 1,

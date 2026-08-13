@@ -1,6 +1,20 @@
 const core = require('@actions/core');
 const newIssueOrCommentForLabel = require('./new-issue-or-comment-for-label');
 
+// Error message and stack are non-enumerable, so JSON.stringify(error)
+// yields "{}" for plain errors. Prefer the stack, and surface the fields
+// that matter most for Octokit RequestErrors.
+function formatErrorForDebug(error) {
+  const lines = [error.stack || String(error)];
+  if (error.status) {
+    lines.push(`status: ${error.status}`);
+  }
+  if (error.response && error.response.data !== undefined) {
+    lines.push(`response data: ${JSON.stringify(error.response.data)}`);
+  }
+  return lines.join("\n");
+}
+
 // most @actions toolkit packages have async methods
 async function run() {
   try {
@@ -25,9 +39,9 @@ async function run() {
     core.setOutput('issue-number', issueNumber);
     core.setOutput('html-url', htmlUrl);
   } catch (error) {
-    core.debug("Error:\n" + JSON.stringify(error))
+    core.debug("Error:\n" + formatErrorForDebug(error))
     core.setFailed(error.message);
   }
 }
 
-module.exports = { run };
+module.exports = { run, formatErrorForDebug };
