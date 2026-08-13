@@ -10,6 +10,8 @@ async function run() {
     const bodyTemplate = core.getInput('body-template');
     const createLabel = core.getBooleanInput('create-label');
     const alwaysCreateNewIssue = core.getBooleanInput('always-create-new-issue');
+    const labelColor = core.getInput('label-color');
+    const labelDescription = core.getInput('label-description');
 
     const { issueNumber, created } = await newIssueOrCommentForLabel(
       githubToken,
@@ -18,6 +20,8 @@ async function run() {
       bodyTemplate,
       createLabel,
       alwaysCreateNewIssue,
+      labelColor,
+      labelDescription,
     )
     const htmlUrl = created.html_url
     core.info("Created url: " + htmlUrl);

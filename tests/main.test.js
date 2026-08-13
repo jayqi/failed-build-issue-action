@@ -18,10 +18,14 @@ describe("Test run", () => {
     'create-label': true,
     'always-create-new-issue': false,
   };
+  const stringInputs = {
+    'label-color': 'B60205',
+    'label-description': 'Build failed in CI',
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    core.getInput.mockImplementation((name) => inputs[name]);
+    core.getInput.mockImplementation((name) => inputs[name] ?? stringInputs[name]);
     core.getBooleanInput.mockImplementation((name) => booleanInputs[name]);
   });
 
@@ -42,6 +46,8 @@ describe("Test run", () => {
       "Build failed on {{refName}}.",
       true,
       false,
+      "B60205",
+      "Build failed in CI",
     );
     expect(core.setOutput).toHaveBeenCalledWith('issue-number', 100);
     expect(core.setOutput).toHaveBeenCalledWith('html-url', testHtmlUrl);
