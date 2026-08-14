@@ -9,6 +9,9 @@ on:
     - cron: '0 12 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: Tests
@@ -38,7 +41,7 @@ jobs:
         npm test
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v7
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
       with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
@@ -52,6 +55,8 @@ jobs:
     needs: tests
     if: failure() && github.event.pull_request == null
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: jayqi/failed-build-issue-action@v1
         with:
