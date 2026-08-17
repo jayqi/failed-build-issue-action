@@ -10990,6 +10990,7 @@ function wrappy (fn, cb) {
 /***/ 7936:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
+const util = __nccwpck_require__(9023);
 const core = __nccwpck_require__(7484);
 const newIssueOrCommentForLabel = __nccwpck_require__(4018);
 
@@ -11017,7 +11018,8 @@ async function run() {
     core.setOutput('issue-number', issueNumber);
     core.setOutput('html-url', htmlUrl);
   } catch (error) {
-    core.debug("Error:\n" + JSON.stringify(error))
+    // util.inspect is what console.error uses to format errors
+    core.debug("Error:\n" + util.inspect(error, { depth: null }))
     core.setFailed(error.message);
   }
 }
