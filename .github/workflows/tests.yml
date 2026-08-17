@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - main
-      - 'releases/*'
   schedule:
     - cron: '0 12 * * 1'
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   tests:
