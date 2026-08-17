@@ -4,6 +4,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: npm
     directory: /
@@ -31,3 +33,5 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@actions/github"
         update-types: ["version-update:semver-major"]
+    cooldown:
+      default-days: 7
