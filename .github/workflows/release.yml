@@ -4,6 +4,8 @@ on:
   release:
     types: [published]
 
+permissions: {}
+
 jobs:
   move-major-tag:
     name: Move major version tag
@@ -15,15 +17,18 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Move major version tag
         run: |
-          TAG="${{ github.event.release.tag_name }}"
+          TAG="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           MAJOR="${TAG%%.*}"          # v1.2.3 -> v1
           # Dereference to the commit so the major tag never becomes a
           # tag-of-a-tag when the release tag is annotated.
           git tag -f "$MAJOR" "$TAG^{commit}"
           git push origin -f "refs/tags/$MAJOR"
+        env:
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}

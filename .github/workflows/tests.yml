@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - main
-      - 'releases/*'
   schedule:
     - cron: '0 12 * * 1'
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   tests:
@@ -17,10 +18,12 @@ jobs:
       contents: read
       issues: write
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Set up Node
-      uses: actions/setup-node@v7
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version-file: .node-version
         cache: npm
@@ -38,7 +41,7 @@ jobs:
         npm test
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v7
+      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
       with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
@@ -53,6 +56,6 @@ jobs:
     if: failure() && github.event.pull_request == null
     runs-on: ubuntu-latest
     steps:
-      - uses: jayqi/failed-build-issue-action@v1
+      - uses: jayqi/failed-build-issue-action@1a893bbf43ef1c2a8705e2b115cd4f0fe3c5649b # v1.2.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
