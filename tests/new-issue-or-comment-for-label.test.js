@@ -459,8 +459,14 @@ describe("Test newIssueOrCommentForLabel", () => {
       defaultBodyTemplate,
       true,
       false,
+      "B60205",
+      "Build failed in CI",
     )
-    expect(captured.createLabel).toEqual({ name: testLabel });
+    expect(captured.createLabel).toEqual({
+      name: testLabel,
+      color: "B60205",
+      description: "Build failed in CI",
+    });
     expect(captured.listIssues).toEqual(expectedListQuery);
     expect(captured.createIssue).toEqual({
       title: expectedTitle,
@@ -472,6 +478,42 @@ describe("Test newIssueOrCommentForLabel", () => {
       number: newIssueNumber,
       html_url: testIssueHtmlUrl,
     });
+  });
+
+  it("should omit color and description from createLabel when not provided", async () => {
+    // Mock check if label exists
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/labels/${encodeURI(testLabel)}`)
+      .reply(404, {
+        message: "Not Found",
+      });
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/labels`, capture('createLabel'))
+      .reply(201, {
+        name: testLabel,
+      });
+    // Mock search issues with label
+    nock("https://api.github.com")
+      .get(`/repos/${testOwner}/${testRepo}/issues`)
+      .query(capture('listIssues'))
+      .reply(200, []);
+    // Mock create new issue
+    nock("https://api.github.com")
+      .post(`/repos/${testOwner}/${testRepo}/issues`, capture('createIssue'))
+      .reply(200, {
+        number: 100,
+        html_url: `https://github.com/${testOwner}/${testRepo}/issues/100`,
+      });
+
+    await newIssueOrCommentForLabel(
+      "github_token_here",
+      testLabel,
+      defaultTitleTemplate,
+      defaultBodyTemplate,
+      true,
+      false,
+    )
+    expect(captured.createLabel).toEqual({ name: testLabel });
   });
 
   it("should link to the fork's branch for a pull request from a fork", async () => {

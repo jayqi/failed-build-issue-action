@@ -192,6 +192,10 @@ If you need to inject data that isn't available from the context object within t
 
 The default behavior of appending to the latest open `"build failed"` issue assumes that if the issue is still open, it is unaddressed and most likely the cause of the additional failure.
 
+"Latest" here means the most recently **created** open issue with the label: the action lists open labeled issues sorted by creation date (newest first) and comments on the newest one. If you track by activity instead, close or unlabel older issues so the newest labeled issue is the one you want comments on.
+
+The find-then-create sequence is not atomic, so two workflow runs that fail at the same moment can each open their own issue. This race is acceptable: comment duplication would be worse, and the next run attaches to the newest issue.
+
 If you would like to always create a new issue, set the parameter `always-create-new-issue` to `true`.
 
 If you are sticking with the default behavior of appending a comment to the latest open issue in general, but you have a particular case where you don't want it to append a comment and instead open a new issue, you can remove the `"build failed"` label from the open issue(s). One situation where you might want to do this is if you've temporarily fixed the cause of a failure, but you want to keep the issue open to track additional to-dos.

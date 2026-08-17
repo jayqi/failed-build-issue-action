@@ -32,6 +32,13 @@ inputs:
     description: "If true, will always create a new issue, even if one matching 'label-name' is already open."
     required: false
     default: false
+  label-color:
+    description: "Color of the label to create if 'label-name' doesn't already exist."
+    required: false
+    default: "B60205"
+  label-description:
+    description: "Description for the label to create if 'label-name' doesn't already exist."
+    required: false
 # outputs will be available to future steps
 outputs:
   issue-number:

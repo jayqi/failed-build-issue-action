@@ -41,7 +41,8 @@ const templateView = (context, ref) => ({
 });
 
 let newIssueOrCommentForLabel = async function (
-  githubToken, labelName, titleTemplate, bodyTemplate, createLabel, alwaysCreateNewIssue
+  githubToken, labelName, titleTemplate, bodyTemplate, createLabel, alwaysCreateNewIssue,
+  labelColor, labelDescription
 ) {
   // octokit client
   // https://octokit.github.io/rest.js/
@@ -73,10 +74,17 @@ let newIssueOrCommentForLabel = async function (
       core.info("Label '" + labelName + "' not found.")
       if (createLabel) {
         core.info("Creating label '" + labelName + "'...")
+        const createLabelBody = { name: labelName };
+        if (labelColor) {
+          createLabelBody.color = labelColor;
+        }
+        if (labelDescription) {
+          createLabelBody.description = labelDescription;
+        }
         const create_label_response = await octokit.rest.issues.createLabel({
           owner,
           repo,
-          name: labelName,
+          ...createLabelBody,
         });
         core.debug("create_label_response:\n" + JSON.stringify(create_label_response))
       } else {
