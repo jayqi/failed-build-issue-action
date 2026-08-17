@@ -13,6 +13,7 @@
 - Fixed the search for an existing issue incorrectly matching pull requests. GitHub's REST API returns pull requests from the issues endpoint, so a pull request carrying the configured label could become the comment target and the action would never open a real issue. Pull requests are now skipped, and the action logs a warning naming any it finds with the label.
 - Fixed the action making an unnecessary API request to search for existing issues when `always-create-new-issue` is `true`.
 - Fixed the incorrect `required: true` on all inputs, changing to `required: false`. GitHub Actions did not enforce `required` for action inputs anyway, so this is a metadata fix and does not change behavior.
+- Fixed debug logging of errors printing `{}` instead of the error. Debug output now includes the error message, stack trace, and, when the failure wraps a GitHub API error, the underlying status and response.
 
 ## v1.2.0 (2024-02-16)
 

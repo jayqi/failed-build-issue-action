@@ -71,6 +71,34 @@ describe("Test run", () => {
     expect(core.setOutput).not.toHaveBeenCalled();
   });
 
+  // setFailed only surfaces error.message; the debug line carries the stack.
+  it("should debug log the message and stack of a failure", async () => {
+    newIssueOrCommentForLabel.mockRejectedValue(new Error("Something went wrong"));
+
+    await run();
+
+    const logged = core.debug.mock.calls[0][0];
+    expect(logged).toContain("Something went wrong");
+    expect(logged).toMatch(/\n\s+at /);
+  });
+
+  // The label-not-found path wraps the Octokit error via `cause`.
+  it("should debug log the underlying cause of a wrapped failure", async () => {
+    const cause = Object.assign(new Error("Not Found"), {
+      status: 404,
+      response: { data: { message: "Not Found" } },
+    });
+    newIssueOrCommentForLabel.mockRejectedValue(
+      new Error('Label "build failed" not found and createLabel = false.', { cause }),
+    );
+
+    await run();
+
+    const logged = core.debug.mock.calls[0][0];
+    expect(logged).toContain("[cause]");
+    expect(logged).toContain("status: 404");
+  });
+
   it("reads exactly the inputs declared in action.yml", async () => {
     newIssueOrCommentForLabel.mockResolvedValue({
       issueNumber: 1,

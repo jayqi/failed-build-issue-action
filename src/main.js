@@ -1,3 +1,4 @@
+const util = require('util');
 const core = require('@actions/core');
 const newIssueOrCommentForLabel = require('./new-issue-or-comment-for-label');
 
@@ -25,7 +26,8 @@ async function run() {
     core.setOutput('issue-number', issueNumber);
     core.setOutput('html-url', htmlUrl);
   } catch (error) {
-    core.debug("Error:\n" + JSON.stringify(error))
+    // util.inspect is what console.error uses to format errors
+    core.debug("Error:\n" + util.inspect(error, { depth: null }))
     core.setFailed(error.message);
   }
 }
